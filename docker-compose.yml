@@ -70,6 +70,8 @@ services:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
     command: ["arq", "app.worker.WorkerSettings"]
+    healthcheck:
+      disable: true
 
   frontend:
     build: ./frontend
@@ -78,7 +80,7 @@ services:
     ports:
       - "3000:80"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ > /dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -5,7 +5,6 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from arq import cron
 from arq.connections import RedisSettings
 
 from app.agents.registry import AgentRegistry
@@ -51,9 +50,6 @@ async def shutdown(ctx: dict[str, Any]) -> None:
 
 class WorkerSettings:
     functions = [run_task]
-    cron_jobs = [
-        cron(lambda ctx: None, minute=0, hour=3, run_at_startup=False),  # placeholder nightly
-    ]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings(
