@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-14-linter", "version": "1.0.0",
+  "mission": "Ruff lint sur l'espace de travail. Retourne issues + score.",
+  "inputs": {"workspace":{"type":"object","required":true}},
+  "outputs": {"score":{"type":"number"},"issues_count":{"type":"integer"},"issues_by_code":{"type":"object"}},
+  "permissions": ["read_workspace","run_ruff"],
+  "timeout_s": 60, "budget_max_usd": 0.0,
+  "causes_refus": ["ruff CLI indisponible"],
+  "criteres_succes": ["score >= 0.80"]
+}

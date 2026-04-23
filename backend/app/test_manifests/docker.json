@@ -1,0 +1,9 @@
+{
+  "project_type": "docker",
+  "description": "Livrable Docker-isable (image + compose)",
+  "required_suites": [
+    {"id": "smoke",      "pattern": "tests/test_*smoke*.py",      "min_cases": 1},
+    {"id": "healthcheck","pattern": "tests/test_*health*.py",     "min_cases": 1}
+  ],
+  "mandatory_markers": ["Dockerfile", "requirements.txt"]
+}

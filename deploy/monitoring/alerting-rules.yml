@@ -1,0 +1,195 @@
+# UBA Production Alert Rules
+#
+# A importer dans Grafana Cloud via :
+#   - UI : Alerting > Alert rules > "Import rules" puis coller ce YAML
+#   - ou API POST /api/ruler/grafana/api/v1/rules/{namespace}
+#
+# Notifications : creer des contact points (email ahmed@dendani.dz,
+# Telegram bot, ou webhook) et routes dans Grafana Cloud Alerting.
+
+groups:
+  # ========================================================================
+  # Niveau 1 - CRITIQUE (page Ahmed immediat)
+  # ========================================================================
+  - name: uba_critical
+    interval: 1m
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          tier: "1"
+          service: backend
+        annotations:
+          summary: "Backend UBA down (job=backend unreachable 2m)"
+          runbook: "docs/RUNBOOK.md#backend-down"
+
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          tier: "1"
+          service: postgres
+        annotations:
+          summary: "Postgres down - donnees non accessibles"
+          runbook: "docs/RUNBOOK.md#postgres-down"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          tier: "1"
+          service: redis
+        annotations:
+          summary: "Redis down - queue arq cassee, automation stoppee"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          tier: "1"
+        annotations:
+          summary: "Disque VPS < 10% libre"
+          runbook: "docs/RUNBOOK.md#disk-full"
+
+      - alert: HighErrorRate5xx
+        expr: |
+          sum(rate(nginx_http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(nginx_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          tier: "1"
+        annotations:
+          summary: "Taux 5xx > 5% sur 5 min"
+
+      - alert: SSLCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 604800
+        labels:
+          severity: critical
+          tier: "1"
+        annotations:
+          summary: "SSL cert expires in < 7 days"
+          runbook: "docs/RUNBOOK.md#ssl-renewal"
+
+  # ========================================================================
+  # Niveau 2 - IMPORTANT (notification diurne)
+  # ========================================================================
+  - name: uba_warning
+    interval: 5m
+    rules:
+      - alert: HighCPU
+        expr: avg(rate(node_cpu_seconds_total{mode!="idle"}[5m])) > 0.85
+        for: 15m
+        labels:
+          severity: warning
+          tier: "2"
+        annotations:
+          summary: "CPU VPS > 85% pendant 15 min"
+
+      - alert: HighMemory
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 15m
+        labels:
+          severity: warning
+          tier: "2"
+        annotations:
+          summary: "Memoire VPS > 90% pendant 15 min"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_database_xact_rollback[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+          tier: "2"
+          service: postgres
+        annotations:
+          summary: "Plus de 60 rollbacks/min sur Postgres"
+
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          tier: "2"
+          service: redis
+        annotations:
+          summary: "Redis memoire > 85% - eviction imminente"
+
+      - alert: WorkerAutomationDown
+        expr: |
+          absent(container_cpu_usage_seconds_total{name=~"uba-prod-worker_automation.*"})
+        for: 5m
+        labels:
+          severity: warning
+          tier: "2"
+          service: automation
+        annotations:
+          summary: "Un worker automation absent du scrape > 5 min"
+
+      - alert: WorkflowTaskFailureRate
+        expr: |
+          sum(rate(workflow_executions_failed_total[1h])) /
+          sum(rate(workflow_executions_total[1h])) > 0.2
+        for: 30m
+        labels:
+          severity: warning
+          tier: "2"
+          service: automation
+        annotations:
+          summary: "Taux d'echec workflow > 20% sur 1h"
+
+      - alert: DLQAccumulating
+        expr: dead_letter_queue_unresolved_count > 50
+        for: 30m
+        labels:
+          severity: warning
+          tier: "2"
+        annotations:
+          summary: "Dead-letter queue > 50 entrees non resolues"
+
+      - alert: BackupStale
+        expr: time() - uba_last_backup_timestamp_seconds > 90000
+        labels:
+          severity: warning
+          tier: "2"
+        annotations:
+          summary: "Dernier backup > 25h - verifier container `backup`"
+          runbook: "docs/RUNBOOK.md#backup-missing"
+
+  # ========================================================================
+  # Niveau 3 - INFO (daily digest)
+  # ========================================================================
+  - name: uba_info
+    interval: 30m
+    rules:
+      - alert: EvidenceChainBreak
+        expr: uba_evidence_chain_integrity_ok == 0
+        for: 30m
+        labels:
+          severity: warning
+          tier: "3"
+        annotations:
+          summary: "Evidence ledger chain_hash broken"
+          runbook: "docs/RECOVERY_PLAN.md#evidence-chain-break"
+
+      - alert: LowAutonomyScore
+        expr: uba_autonomy_kpi_rate < 0.85
+        for: 2h
+        labels:
+          severity: info
+          tier: "3"
+        annotations:
+          summary: "Autonomie globale < 85% sur 2h"
+
+      - alert: HighDailyCost
+        expr: sum(increase(uba_cost_usd[24h])) > 50
+        labels:
+          severity: info
+          tier: "3"
+        annotations:
+          summary: "Cout quotidien Anthropic > 50$"

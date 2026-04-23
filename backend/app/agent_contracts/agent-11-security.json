@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-11-security", "version": "1.0.0",
+  "mission": "Audit securite multi-axe : bandit strict, secrets regex, audit dependances. Produit SECURITY.md.",
+  "inputs": {"workspace":{"type":"object","required":true},"manifest":{"type":"array"}},
+  "outputs": {"score":{"type":"number"},"bandit_count":{"type":"integer"},"secrets_count":{"type":"integer"},"deps_count":{"type":"integer"}},
+  "permissions": ["read_workspace","write_workspace","run_bandit"],
+  "timeout_s": 180, "budget_max_usd": 0.0,
+  "causes_refus": ["secrets hardcodes detectes","deps vulnerables listees critiques"],
+  "criteres_succes": ["score >= 0.80","secrets_count = 0"]
+}

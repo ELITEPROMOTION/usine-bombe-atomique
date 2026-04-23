@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-04-pytest", "version": "1.0.0",
+  "mission": "Execute pytest + json-report sur le workspace, analyse la couverture et les failures.",
+  "inputs": {"workspace":{"type":"object","required":true}},
+  "outputs": {"score":{"type":"number"},"tests_total":{"type":"integer"},"tests_passed":{"type":"integer"},"tests_failed":{"type":"integer"}},
+  "permissions": ["read_workspace","run_pytest"],
+  "timeout_s": 300, "budget_max_usd": 0.0,
+  "causes_refus": ["tests/ manquant","pytest CLI indisponible"],
+  "criteres_succes": ["score >= 0.90 et tests_failed = 0"]
+}

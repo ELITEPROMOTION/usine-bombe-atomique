@@ -69,14 +69,27 @@ UTILISATEUR
 
 ## Gates d'auto-construction
 
-| Gate | Critere                                 | Etat V0 |
+| Gate | Critere                                 | Etat V1 |
 |------|-----------------------------------------|---------|
 | G1   | Besoin + acces suffisants              | OK      |
 | G2   | Pas de contradictions                   | OK      |
 | G3   | Socle minimal genere                    | OK      |
-| G4   | Orchestration Arq fonctionnelle         | partiel |
-| G5   | 23 agents enregistres                   | stubs   |
-| G6   | Execution bout-en-bout                  | TODO    |
+| G4   | Orchestration Arq + DAG parallele       | OK      |
+| G5   | 23 agents enregistres (5 reels)         | OK      |
+| G6   | Execution bout-en-bout (CRUD Classe A)  | OK      |
 | G7   | Auto-correction                         | TODO    |
 | G8   | Memoire reutilisee                      | TODO    |
 | G9   | Auto-amelioration                       | TODO    |
+
+## Pipeline de validation (V1 : 5 niveaux)
+
+| Niveau | Nom                    | Poids | Verificateur                    |
+|--------|------------------------|-------|---------------------------------|
+| 1      | Coherence Logique      | 0.20  | `ast.parse` sur tous les .py    |
+| 2      | Conformite CDC         | 0.20  | main + tests + requirements + README presents |
+| 3      | Qualite (Lint + Sonar) | 0.20  | ruff score + bandit/radon score |
+| 4      | Tests (Pytest)         | 0.30  | pytest-json-report              |
+| 5      | Production Ready       | 0.10  | README >= 120 o + >= 4 fichiers |
+
+Verdict : HARD_FAIL si L1 ou L2 echoue, SOFT_FAIL si score < 0.70, CONDITIONAL_PASS
+si < 0.85, sinon PASS.

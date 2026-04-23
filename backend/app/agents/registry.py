@@ -1,18 +1,31 @@
 """Registre singleton des 23 agents (Ch.5.5 du CDC).
 
-En V0 bootstrap les agents sont des stubs: chaque classe retourne
-un output vide mais correct structurellement. Les implementations
-metier sont remplies par l'orchestrateur dans les iterations suivantes.
+V2 : 10 agents prioritaires implementes reellement
+  V1 : #01, #02, #04, #14, #21
+  V2 : #03, #05, #06, #11, #18
+Les autres restent des stubs structures en attendant la V3.
 """
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from typing import Any
 
 from app.agents.base_agent import BaseAgent
+from app.agents.bootstrap_agent import BootstrapAgent
+from app.agents.claude_code_agent import ClaudeCodeAgent
+from app.agents.conformite_dz_agent import ConformiteDzAgent
+from app.agents.datadog_agent import DatadogAgent
+from app.agents.docker_agent import DockerAgent
+from app.agents.linter_agent import LinterAgent
+from app.agents.pytest_agent import PytestAgent
+from app.agents.readme_agent import ReadmeAgent
+from app.agents.security_agent import SecurityAgent
+from app.agents.sonarqube_agent import SonarQubeAgent
+from app.agents.terraform_agent import TerraformAgent
 
 
-class _StubAgent(BaseAgent):
+class StubAgent(BaseAgent):
     """Stub : enregistre l'intention d'execution sans effet de bord."""
 
     def __init__(self, agent_id: str, name: str, category: str) -> None:
@@ -28,7 +41,6 @@ class _StubAgent(BaseAgent):
         }
 
 
-# Registre figé conforme CDC Ch.5.5. L'ordre est canonique.
 AGENT_CATALOG: list[tuple[str, str, str]] = [
     ("agent-00-bootstrap",     "Bootstrap Agent",        "meta"),
     ("agent-01-claude-code",   "Claude Code",            "development"),
@@ -57,22 +69,46 @@ AGENT_CATALOG: list[tuple[str, str, str]] = [
 ]
 
 
+REAL_AGENTS: dict[str, Callable[[], BaseAgent]] = {
+    "agent-00-bootstrap":     BootstrapAgent,
+    "agent-01-claude-code":   ClaudeCodeAgent,
+    "agent-02-sonarqube":     SonarQubeAgent,
+    "agent-03-terraform":     TerraformAgent,
+    "agent-04-pytest":        PytestAgent,
+    "agent-05-datadog":       DatadogAgent,
+    "agent-06-docker":        DockerAgent,
+    "agent-11-security":      SecurityAgent,
+    "agent-14-linter":        LinterAgent,
+    "agent-18-conformite-dz": ConformiteDzAgent,
+    "agent-21-readme":        ReadmeAgent,
+}
+
+
 class AgentRegistry:
-    _instance: "AgentRegistry | None" = None
+    _instance: AgentRegistry | None = None
 
     def __init__(self) -> None:
         self._agents: dict[str, BaseAgent] = {}
 
     @classmethod
-    def get_instance(cls) -> "AgentRegistry":
+    def get_instance(cls) -> AgentRegistry:
         if cls._instance is None:
             cls._instance = cls()
             cls._instance._register_all()
         return cls._instance
 
+    @classmethod
+    def reset(cls) -> None:
+        cls._instance = None
+
     def _register_all(self) -> None:
         for agent_id, name, category in AGENT_CATALOG:
-            self._agents[agent_id] = _StubAgent(agent_id, name, category)
+            if agent_id in REAL_AGENTS:
+                agent = REAL_AGENTS[agent_id]()
+                agent.category = category  # type: ignore[attr-defined]
+                self._agents[agent_id] = agent
+            else:
+                self._agents[agent_id] = StubAgent(agent_id, name, category)
 
     def get(self, agent_id: str) -> BaseAgent:
         agent = self._agents.get(agent_id)
@@ -88,6 +124,7 @@ class AgentRegistry:
                 "version": a.version,
                 "initialized": a._initialized,
                 "category": getattr(a, "category", "unknown"),
+                "implementation": "real" if a.agent_id in REAL_AGENTS else "stub",
             }
             for a in self._agents.values()
         ]

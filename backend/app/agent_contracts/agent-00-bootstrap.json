@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-00-bootstrap", "version": "1.0.0",
+  "mission": "Agent meta : enregistre que le bootstrap initial est complete. Pas d'effet metier.",
+  "inputs": {"cdc_version":{"type":"string","required":false}},
+  "outputs": {"bootstrap_completed":{"type":"boolean","const":true},"handoff_to":{"type":"string"}},
+  "permissions": [],
+  "timeout_s": 5, "budget_max_usd": 0.0,
+  "causes_refus": [],
+  "criteres_succes": ["bootstrap_completed = true"]
+}

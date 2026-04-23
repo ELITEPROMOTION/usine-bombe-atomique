@@ -2,13 +2,13 @@
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field
 
+from pydantic import BaseModel, EmailStr, Field
 
 TaskStatus = Literal[
     "pending", "analyzing", "planning", "distributing",
     "executing", "validating", "reworking",
-    "completed", "failed", "cancelled",
+    "completed", "failed", "cancelled", "waiting_input",
 ]
 AgentStatus = Literal["pending", "running", "success", "failed", "timeout", "skipped"]
 Verdict = Literal["PASS", "CONDITIONAL_PASS", "SOFT_FAIL", "HARD_FAIL"]

@@ -1,0 +1,4 @@
+{
+  "prompt": "Genere une API FastAPI CRUD pour une ressource Product : id, name (string), price_dzd (Decimal), stock (int), created_at. Endpoints POST/GET list/GET one/PUT/DELETE /products, plus /health. Tests pytest complets du cycle CRUD. Dockerfile multi-stage non-root avec HEALTHCHECK. README avec exemples curl. Pas de base de donnees, stockage en memoire avec dict. Reponds UNIQUEMENT avec un JSON {\"files\": {\"<chemin>\": \"<contenu>\"}}.",
+  "priority": "high"
+}

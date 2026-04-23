@@ -65,12 +65,22 @@ Voir `.env.example`. Les secrets critiques a fournir :
 
 - [x] G1 Completude CDC
 - [x] G3 Bootstrap (repo + BDD + API + Frontend + Docker)
-- [ ] G4 Orchestration (FastAPI + Arq pipeline complet)
-- [ ] G5 Agents initialises (23/23)
-- [ ] G6 Execution bout-en-bout
+- [x] G4 Orchestration (FastAPI + Arq + DAG parallele)
+- [x] G5 Agents initialises (23/23 : 5 reels + 18 stubs)
+- [x] G6 Execution bout-en-bout (CRUD Classe A - score 0.999)
 - [ ] G7 Auto-correction
 - [ ] G8 Memoire reutilisee
 - [ ] G9 Auto-amelioration
+
+## Agents reels (V1)
+
+| # | Agent         | Implementation                              |
+|---|---------------|---------------------------------------------|
+| 01| Claude Code   | Anthropic API + fallback template CRUD      |
+| 02| SonarQube     | bandit + radon (proxy local)                |
+| 04| Pytest        | pytest + json-report                        |
+| 14| Linter        | ruff check --output-format json             |
+| 21| README Gen    | rendu deterministe depuis manifest + spec   |
 
 ## Licence
 

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuth } from "@/stores/authStore";
 
 export const apiClient = axios.create({
   baseURL: "/api/v1",
@@ -6,7 +7,18 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((cfg) => {
-  const token = localStorage.getItem("uba_token");
+  const token = useAuth.getState().token;
   if (token && cfg.headers) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
 });
+
+apiClient.interceptors.response.use(
+  (r) => r,
+  (err) => {
+    if (err?.response?.status === 401) {
+      useAuth.getState().logout();
+      if (location.pathname !== "/login") location.replace("/login");
+    }
+    return Promise.reject(err);
+  },
+);

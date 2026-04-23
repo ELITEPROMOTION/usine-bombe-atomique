@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-06-docker", "version": "1.0.0",
+  "mission": "Durcit le Dockerfile (HEALTHCHECK, USER non-root, multi-stage), complete avec compose et .dockerignore.",
+  "inputs": {"workspace":{"type":"object","required":true},"manifest":{"type":"array"}},
+  "outputs": {"score":{"type":"number"},"dockerfile_present":{"type":"boolean"},"checks":{"type":"object"}},
+  "permissions": ["read_workspace","write_workspace"],
+  "timeout_s": 30, "budget_max_usd": 0.0,
+  "causes_refus": ["FROM latest tag","ADD via URL dans Dockerfile"],
+  "criteres_succes": ["score >= 0.75","HEALTHCHECK et USER non-root presents"]
+}

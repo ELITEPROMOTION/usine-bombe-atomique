@@ -1,0 +1,30 @@
+{
+  "agent_id": "agent-01-claude-code",
+  "version": "2.1.0",
+  "mission": "Generer un projet Python/FastAPI complet a partir d'une specification metier. Code ruff-clean, tests pytest, Dockerfile, README.",
+  "inputs": {
+    "spec":       {"type": "string", "required": true, "min_length": 40},
+    "task_id":    {"type": "string", "required": true, "format": "uuid"},
+    "workspace":  {"type": "object", "required": true, "has": ["task_id", "root"]},
+    "priority":   {"type": "string", "required": false, "enum": ["low","medium","high","critical"]}
+  },
+  "outputs": {
+    "source":      {"type": "string", "enum": ["anthropic","template","llm","template_fallback","template_no_key","unknown"]},
+    "files_count": {"type": "integer", "min": 1},
+    "manifest":    {"type": "array", "items_required": ["path","language","size_bytes"]},
+    "tri_brain":   {"type": "object", "required_keys": ["final_verdict","rounds"]}
+  },
+  "permissions": ["read_spec","call_anthropic_api","write_workspace","read_pool_optional"],
+  "timeout_s": 900,
+  "budget_max_usd": 5.0,
+  "causes_refus": [
+    "spec contenant patterns offensifs (voir policy_arbiter R1)",
+    "contradictions detectees sans resolution (contradiction_detector)",
+    "budget estime depassant le cap (policy_arbiter R3)"
+  ],
+  "criteres_succes": [
+    "Au moins 1 fichier genere dans le workspace",
+    "tri_brain.final_verdict != 'reject'",
+    "ast.parse OK sur tous les .py produits (valide par Level 0)"
+  ]
+}

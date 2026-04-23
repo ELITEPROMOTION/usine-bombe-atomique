@@ -1,0 +1,10 @@
+{
+  "project_type": "workflow",
+  "description": "Workflow metier deterministe (paie, compta, VEFA)",
+  "required_suites": [
+    {"id": "business_rules", "pattern": "tests/test_business*.py", "min_cases": 5},
+    {"id": "integration",    "pattern": "tests/test_*integration*.py", "min_cases": 1},
+    {"id": "regression",     "pattern": "tests/test_*regression*.py", "min_cases": 0}
+  ],
+  "mandatory_markers": ["pytest.ini"]
+}

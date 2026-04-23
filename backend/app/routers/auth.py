@@ -1,5 +1,5 @@
 """Authentification JWT (stub Bootstrap - a durcir)."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, status
@@ -16,7 +16,7 @@ pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _create_token(sub: str) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": sub,
         "iat": int(now.timestamp()),

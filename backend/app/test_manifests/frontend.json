@@ -1,0 +1,10 @@
+{
+  "project_type": "frontend",
+  "description": "Frontend SPA React/TS - suites recommandees",
+  "required_suites": [
+    {"id": "component", "pattern": "src/**/*.test.tsx", "min_cases": 1},
+    {"id": "hook",      "pattern": "src/hooks/*.test.ts", "min_cases": 1},
+    {"id": "a11y",      "pattern": "tests/a11y*.ts", "min_cases": 0}
+  ],
+  "mandatory_markers": ["package.json", "tsconfig.json"]
+}

@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-03-terraform", "version": "1.0.0",
+  "mission": "Genere un squelette IaC (AWS ECS Fargate + CloudWatch) avec sanity regex. Aucun terraform apply.",
+  "inputs": {"workspace":{"type":"object","required":true},"spec":{"type":"string"}},
+  "outputs": {"score":{"type":"number"},"files_written":{"type":"array"},"issues":{"type":"array"}},
+  "permissions": ["write_workspace"],
+  "timeout_s": 60, "budget_max_usd": 0.0,
+  "causes_refus": ["accolades desequilibrees dans le template","variables non definies"],
+  "criteres_succes": ["4 fichiers .tf emis","score >= 0.90"]
+}

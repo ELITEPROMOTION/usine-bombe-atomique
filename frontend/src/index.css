@@ -1,8 +1,99 @@
-*, *::before, *::after { box-sizing: border-box; }
-html, body, #root { margin: 0; padding: 0; height: 100%; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0f172a;
-  color: #fff;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html, body, #root { margin: 0; padding: 0; height: 100%; }
+  body {
+    @apply bg-ink-950 text-ink-100 font-sans antialiased;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    background-image:
+      radial-gradient(1200px 600px at 80% -20%, rgba(231,192,91,0.07), transparent 60%),
+      radial-gradient(1000px 500px at -10% 110%, rgba(196,145,41,0.06), transparent 60%);
+  }
+  ::selection { @apply bg-gold-500/30 text-gold-50; }
+  button { font: inherit; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-ink-700 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-ink-600; }
 }
-button { font: inherit; }
+
+@layer components {
+  .panel {
+    @apply bg-ink-900/80 border border-ink-700/60 rounded-2xl shadow-panel backdrop-blur;
+  }
+  .panel-inner {
+    @apply bg-ink-850/70 border border-ink-700/50 rounded-xl;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
+           transition-all duration-200 select-none relative overflow-hidden
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn text-ink-950 font-semibold tracking-tight;
+    background-image: linear-gradient(180deg, #f1d98c 0%, #e7c05b 45%, #c49129 100%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.45) inset,
+      0 -1px 0 rgba(0,0,0,0.15) inset,
+      0 0 0 1px rgba(180,130,40,0.35),
+      0 10px 28px -12px rgba(231,192,91,0.55);
+  }
+  .btn-primary::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 700ms cubic-bezier(.2,.8,.2,1);
+    pointer-events: none;
+  }
+  .btn-primary:hover {
+    background-image: linear-gradient(180deg, #fdf8ec 0%, #f1d98c 45%, #d9a63c 100%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.6) inset,
+      0 -1px 0 rgba(0,0,0,0.1) inset,
+      0 0 0 1px rgba(241,217,140,0.55),
+      0 18px 44px -14px rgba(241,217,140,0.75),
+      0 0 60px -10px rgba(241,217,140,0.55);
+    transform: translateY(-1px);
+  }
+  .btn-primary:hover::after { transform: translateX(120%); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost {
+    @apply btn text-ink-200 hover:text-ink-50 hover:bg-ink-800/80 border border-transparent hover:border-ink-700;
+  }
+  .btn-outline {
+    @apply btn border border-ink-700 text-ink-100 hover:bg-ink-800/80 hover:border-ink-600;
+  }
+  .input {
+    @apply w-full bg-ink-850/80 border border-ink-700/80 rounded-lg px-3.5 py-2.5 text-sm
+           text-ink-50 placeholder:text-ink-400
+           focus:outline-none focus:border-gold-500/70 focus:ring-2 focus:ring-gold-500/20
+           transition-all duration-200;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium
+           border;
+  }
+  .chip-gold { @apply chip bg-gold-500/10 border-gold-500/30 text-gold-200; }
+  .chip-success { @apply chip bg-success/10 border-success/30 text-success; }
+  .chip-warn { @apply chip bg-warn/10 border-warn/30 text-warn; }
+  .chip-danger { @apply chip bg-danger/10 border-danger/30 text-danger; }
+  .chip-neutral { @apply chip bg-ink-800 border-ink-700 text-ink-200; }
+
+  .ring-gold {
+    background-image: linear-gradient(var(--tw-gradient-stops, rgba(0,0,0,0), rgba(0,0,0,0))),
+                      linear-gradient(135deg, rgba(231,192,91,0.5), rgba(196,145,41,0.15));
+  }
+  .divider {
+    @apply h-px bg-gradient-to-r from-transparent via-ink-700 to-transparent;
+  }
+  .hairline {
+    @apply border-b border-ink-800;
+  }
+}

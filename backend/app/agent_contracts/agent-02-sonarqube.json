@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-02-sonarqube", "version": "1.0.0",
+  "mission": "Analyse qualite + securite statique (bandit+radon) sur l'espace de travail. Proxy local du SonarQube SaaS.",
+  "inputs": {"workspace": {"type":"object","required":true}},
+  "outputs": {"score":{"type":"number","min":0,"max":1},"severity_counts":{"type":"object"},"complexity":{"type":"object"}},
+  "permissions": ["read_workspace","run_bandit","run_radon"],
+  "timeout_s": 180, "budget_max_usd": 0.0,
+  "causes_refus": ["workspace absent","bandit CLI indisponible"],
+  "criteres_succes": ["score >= 0.80","bandit HIGH severity count = 0"]
+}

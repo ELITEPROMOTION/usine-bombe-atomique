@@ -1,0 +1,227 @@
+{
+  "__comment": "UBA Production Dashboards - importer dans Grafana Cloud via Dashboards > New > Import > upload JSON. Datasource Prometheus = 'grafanacloud-prom'. Ajuster 'uid' si conflit.",
+  "dashboards": [
+    {
+      "uid": "uba-overview",
+      "title": "UBA - Overview",
+      "tags": ["uba", "production"],
+      "timezone": "browser",
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "templating": { "list": [
+        { "name": "instance", "type": "query", "datasource": "grafanacloud-prom",
+          "query": "label_values(up{service=\"uba\"}, instance)",
+          "refresh": 1, "includeAll": true }
+      ] },
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Backend up",
+          "targets": [{ "expr": "up{job=\"backend\"}" }],
+          "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+          "fieldConfig": { "defaults": { "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ] } }
+        },
+        {
+          "id": 2, "type": "stat", "title": "Postgres up",
+          "targets": [{ "expr": "up{job=\"postgres\"}" }],
+          "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 }
+        },
+        {
+          "id": 3, "type": "stat", "title": "Redis up",
+          "targets": [{ "expr": "up{job=\"redis\"}" }],
+          "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 }
+        },
+        {
+          "id": 4, "type": "stat", "title": "Uptime",
+          "targets": [{ "expr": "(time() - process_start_time_seconds{job=\"backend\"}) / 3600", "legendFormat": "h" }],
+          "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+          "fieldConfig": { "defaults": { "unit": "h", "decimals": 1 } }
+        },
+        {
+          "id": 5, "type": "stat", "title": "Last backup (hours ago)",
+          "targets": [{ "expr": "(time() - uba_last_backup_timestamp_seconds) / 3600" }],
+          "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+          "fieldConfig": { "defaults": { "unit": "h", "thresholds": { "steps": [
+            { "color": "green", "value": 0 }, { "color": "yellow", "value": 24 }, { "color": "red", "value": 48 }
+          ] } } }
+        },
+        {
+          "id": 6, "type": "timeseries", "title": "CPU usage (%)",
+          "targets": [
+            { "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "total" }
+          ],
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 }
+        },
+        {
+          "id": 7, "type": "timeseries", "title": "Memory used",
+          "targets": [
+            { "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes", "legendFormat": "used" },
+            { "expr": "node_memory_MemTotal_bytes", "legendFormat": "total" }
+          ],
+          "fieldConfig": { "defaults": { "unit": "bytes" } },
+          "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 }
+        },
+        {
+          "id": 8, "type": "timeseries", "title": "Disk free %",
+          "targets": [{
+            "expr": "(node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100",
+            "legendFormat": "/"
+          }],
+          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 6 }
+        },
+        {
+          "id": 9, "type": "timeseries", "title": "Network I/O",
+          "targets": [
+            { "expr": "irate(node_network_receive_bytes_total{device!=\"lo\"}[1m])", "legendFormat": "rx {{device}}" },
+            { "expr": "irate(node_network_transmit_bytes_total{device!=\"lo\"}[1m])", "legendFormat": "tx {{device}}" }
+          ],
+          "fieldConfig": { "defaults": { "unit": "Bps" } },
+          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 6 }
+        }
+      ]
+    },
+    {
+      "uid": "uba-automation",
+      "title": "UBA - Automation (V5.5 workflows)",
+      "tags": ["uba", "automation", "v5.5"],
+      "refresh": "30s",
+      "time": { "from": "now-24h", "to": "now" },
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Workflows succeeded (24h)",
+          "targets": [{ "expr": "sum(increase(workflow_executions_succeeded_total[24h]))" }],
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 }
+        },
+        {
+          "id": 2, "type": "stat", "title": "Workflows failed (24h)",
+          "targets": [{ "expr": "sum(increase(workflow_executions_failed_total[24h]))" }],
+          "fieldConfig": { "defaults": { "thresholds": { "steps": [
+            { "color": "green", "value": 0 }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }
+          ] } } },
+          "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 }
+        },
+        {
+          "id": 3, "type": "stat", "title": "Success rate",
+          "targets": [{
+            "expr": "sum(rate(workflow_executions_succeeded_total[1h])) / sum(rate(workflow_executions_total[1h]))",
+            "legendFormat": "1h"
+          }],
+          "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
+          "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 }
+        },
+        {
+          "id": 4, "type": "stat", "title": "DLQ unresolved",
+          "targets": [{ "expr": "dead_letter_queue_unresolved_count" }],
+          "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 }
+        },
+        {
+          "id": 5, "type": "timeseries", "title": "Executions / 5min by task",
+          "targets": [{
+            "expr": "sum(rate(workflow_executions_total[5m])) by (task_name)",
+            "legendFormat": "{{task_name}}"
+          }],
+          "gridPos": { "x": 0, "y": 4, "w": 24, "h": 10 }
+        },
+        {
+          "id": 6, "type": "timeseries", "title": "Task duration p99 (ms)",
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(workflow_task_duration_ms_bucket[5m])) by (le, task_name))",
+            "legendFormat": "{{task_name}}"
+          }],
+          "gridPos": { "x": 0, "y": 14, "w": 24, "h": 10 }
+        }
+      ]
+    },
+    {
+      "uid": "uba-database",
+      "title": "UBA - Database (Postgres + Redis)",
+      "tags": ["uba", "database"],
+      "refresh": "30s",
+      "panels": [
+        {
+          "id": 1, "type": "timeseries", "title": "Postgres - active connections",
+          "targets": [{ "expr": "pg_stat_database_numbackends{datname=\"uba\"}" }],
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+        },
+        {
+          "id": 2, "type": "timeseries", "title": "Postgres - tx/s (commit/rollback)",
+          "targets": [
+            { "expr": "rate(pg_stat_database_xact_commit{datname=\"uba\"}[5m])", "legendFormat": "commit" },
+            { "expr": "rate(pg_stat_database_xact_rollback{datname=\"uba\"}[5m])", "legendFormat": "rollback" }
+          ],
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+        },
+        {
+          "id": 3, "type": "timeseries", "title": "Postgres - DB size",
+          "targets": [{ "expr": "pg_database_size_bytes{datname=\"uba\"}" }],
+          "fieldConfig": { "defaults": { "unit": "bytes" } },
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+        },
+        {
+          "id": 4, "type": "timeseries", "title": "Redis - memory used",
+          "targets": [
+            { "expr": "redis_memory_used_bytes", "legendFormat": "used" },
+            { "expr": "redis_memory_max_bytes", "legendFormat": "max" }
+          ],
+          "fieldConfig": { "defaults": { "unit": "bytes" } },
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+        },
+        {
+          "id": 5, "type": "timeseries", "title": "Redis - ops/sec",
+          "targets": [{ "expr": "rate(redis_commands_processed_total[5m])" }],
+          "gridPos": { "x": 0, "y": 16, "w": 24, "h": 8 }
+        }
+      ]
+    },
+    {
+      "uid": "uba-http",
+      "title": "UBA - HTTP layer (nginx + backend)",
+      "tags": ["uba", "http"],
+      "refresh": "30s",
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Requests / min (last 5m)",
+          "targets": [{ "expr": "sum(rate(http_requests_total[5m])) * 60" }],
+          "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 }
+        },
+        {
+          "id": 2, "type": "stat", "title": "5xx rate",
+          "targets": [{
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))"
+          }],
+          "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "thresholds": { "steps": [
+            { "color": "green", "value": 0 }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }
+          ] } } },
+          "gridPos": { "x": 8, "y": 0, "w": 8, "h": 4 }
+        },
+        {
+          "id": 3, "type": "stat", "title": "p99 latency",
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 }
+        },
+        {
+          "id": 4, "type": "timeseries", "title": "Requests by status class",
+          "targets": [{
+            "expr": "sum(rate(http_requests_total[5m])) by (status)",
+            "legendFormat": "{{status}}"
+          }],
+          "gridPos": { "x": 0, "y": 4, "w": 24, "h": 10 }
+        },
+        {
+          "id": 5, "type": "timeseries", "title": "Latency p50/p95/p99",
+          "targets": [
+            { "expr": "histogram_quantile(0.5,  sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50" },
+            { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" },
+            { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99" }
+          ],
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": { "x": 0, "y": 14, "w": 24, "h": 10 }
+        }
+      ]
+    }
+  ]
+}

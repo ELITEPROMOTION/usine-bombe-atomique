@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-05-datadog", "version": "1.0.0",
+  "mission": "Genere monitoring Datadog (synthetic check, dashboard, monitors) a partir du manifest.",
+  "inputs": {"workspace":{"type":"object","required":true},"spec":{"type":"string"},"manifest":{"type":"array"}},
+  "outputs": {"score":{"type":"number"},"service_name":{"type":"string"},"endpoints_monitored":{"type":"array"}},
+  "permissions": ["read_workspace","write_workspace"],
+  "timeout_s": 30, "budget_max_usd": 0.0,
+  "causes_refus": ["aucun endpoint detectable dans le manifest"],
+  "criteres_succes": [">=1 endpoint monitore","3 fichiers monitoring emis"]
+}

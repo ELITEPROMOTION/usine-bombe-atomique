@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-18-conformite-dz", "version": "1.0.0",
+  "mission": "Moteur deterministe : 8 regles de conformite algerienne (TVA 19, TAP 2, CNAS, IRG, NIN, DZD, no foreign regs, VEFA paliers).",
+  "inputs": {"workspace":{"type":"object","required":true},"spec":{"type":"string"},"manifest":{"type":"array"}},
+  "outputs": {"score":{"type":"number"},"domain":{"type":"object"},"rules":{"type":"array"},"summary":{"type":"string"}},
+  "permissions": ["read_workspace"],
+  "timeout_s": 30, "budget_max_usd": 0.0,
+  "causes_refus": ["regulations non-DZ exclusives (HIPAA/SOX/CCPA)"],
+  "criteres_succes": ["score >= 0.85 sur regles applicables"]
+}

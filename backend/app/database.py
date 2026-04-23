@@ -1,5 +1,6 @@
 """Pool de connexions PostgreSQL via asyncpg."""
 import asyncpg
+
 from app.config import get_settings
 
 _pool: asyncpg.Pool | None = None

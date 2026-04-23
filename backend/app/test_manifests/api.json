@@ -1,0 +1,12 @@
+{
+  "project_type": "api",
+  "description": "API FastAPI backend - suite complete obligatoire",
+  "required_suites": [
+    {"id": "health",        "pattern": "tests/test_health*.py",       "min_cases": 1},
+    {"id": "crud_cycle",    "pattern": "tests/test_*crud*.py",        "min_cases": 3},
+    {"id": "contract",      "pattern": "tests/test_*schemas*.py",     "min_cases": 2},
+    {"id": "business",      "pattern": "tests/test_business*.py",     "min_cases": 3},
+    {"id": "integration",   "pattern": "tests/test_*integration*.py", "min_cases": 0}
+  ],
+  "mandatory_markers": ["pytest.ini"]
+}

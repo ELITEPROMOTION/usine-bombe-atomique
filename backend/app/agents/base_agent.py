@@ -59,12 +59,12 @@ class BaseAgent(abc.ABC):
                 duration_ms=(time.perf_counter() - start) * 1000,
             )
 
-    async def cleanup(self) -> None:
-        """Override si ressources a liberer."""
+    async def cleanup(self) -> None:  # noqa: B027
+        """Hook optionnel : override si ressources a liberer."""
 
-    async def _initialize(self) -> None:
-        """Override si initialisation specifique."""
+    async def _initialize(self) -> None:  # noqa: B027
+        """Hook optionnel : override si initialisation specifique."""
 
     @abc.abstractmethod
     async def _execute(self, inputs: dict[str, Any]) -> Any:
-        """Implementation metier."""
+        """Implementation metier (obligatoire)."""

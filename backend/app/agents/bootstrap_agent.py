@@ -8,6 +8,7 @@ d'amorcage execute par l'operateur / Agent Bootstrap.
 from __future__ import annotations
 
 from typing import Any
+
 from app.agents.base_agent import BaseAgent
 
 

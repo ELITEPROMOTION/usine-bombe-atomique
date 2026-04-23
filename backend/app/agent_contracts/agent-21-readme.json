@@ -1,0 +1,10 @@
+{
+  "agent_id": "agent-21-readme", "version": "1.0.0",
+  "mission": "Genere README.md structure (specification, structure, installation, utilisation, tests) a partir du manifest final.",
+  "inputs": {"workspace":{"type":"object","required":true},"spec":{"type":"string"},"manifest":{"type":"array"}},
+  "outputs": {"path":{"type":"string","const":"README.md"},"bytes":{"type":"integer","min":120},"sections":{"type":"integer","const":5}},
+  "permissions": ["write_workspace"],
+  "timeout_s": 10, "budget_max_usd": 0.0,
+  "causes_refus": ["manifest vide"],
+  "criteres_succes": ["fichier README.md emis, >= 120 octets"]
+}

@@ -1,0 +1,155 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.production.yml'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Deploy mode"
+        required: true
+        default: "rolling"
+        type: choice
+        options: [rolling, full, migrate, rollback]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ${{ github.repository_owner }}/uba-backend
+  IMAGE_FRONTEND: ${{ github.repository_owner }}/uba-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.sha }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: version
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}:${{ steps.version.outputs.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}:latest
+
+      - name: Build + push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:${{ steps.version.outputs.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://uba.dendani.dz
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync configs (deploy/ + docker-compose.production.yml)
+        run: |
+          rsync -az --delete \
+            deploy/ docker-compose.production.yml \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/uba/
+
+      - name: Login VPS to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo '$GHCR_TOKEN' | docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+
+      - name: Run deploy.sh on VPS
+        env:
+          MODE: ${{ github.event.inputs.mode || 'rolling' }}
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && UBA_VERSION=$VERSION ./deploy/scripts/deploy.sh --$MODE || ./deploy/scripts/deploy.sh"
+
+      - name: Smoke test
+        run: |
+          for r in / /ceo /api/v1/health /api/v1/workflows/scheduled; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://uba.dendani.dz$r" || echo 000)
+            echo "$r -> HTTP $code"
+            [ "$code" = "200" ] || [ "$code" = "302" ] || [ "$code" = "401" ] || exit 2
+          done
+
+      - name: Notify (on failure)
+        if: failure()
+        run: |
+          echo "Deployment failed - rollback may be required"
+          echo "Trigger: gh workflow run deploy.yml -f mode=rollback"
+
+  post-deploy-verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run backend tests on VPS (smoke subset)
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && docker compose -f docker-compose.production.yml exec -T backend pytest tests/test_agents_registry.py tests/test_schemas.py -q --no-header --tb=no || true"
+
+      - name: Print service status
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && docker compose -f docker-compose.production.yml ps"

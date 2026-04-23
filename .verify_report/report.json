@@ -1,0 +1,843 @@
+{
+  "generated_at": "2026-04-23T21:07:30Z",
+  "overall_status": "FAIL",
+  "duration_s": 929.58,
+  "phases": [
+    {
+      "name": "Phase 1 · Verification par module",
+      "status": "FAIL",
+      "score": 0.7857,
+      "duration_s": 616.1,
+      "checks": [
+        {
+          "name": "P1.1 AST parse (backend)",
+          "status": "PASS",
+          "summary": "196 fichiers analyses, 0 erreur(s)",
+          "details": {
+            "file_count": 196,
+            "errors": []
+          },
+          "duration_s": 4.225
+        },
+        {
+          "name": "P1.2 Pytest + coverage (gate 50%)",
+          "status": "FAIL",
+          "summary": "pytest rc=-1, couverture=0.0%",
+          "details": {
+            "returncode": -1,
+            "coverage_pct": 0.0,
+            "tail_stdout": "",
+            "tail_stderr": "timeout 600s"
+          },
+          "duration_s": 600.106
+        },
+        {
+          "name": "P1.3 Ruff + Bandit",
+          "status": "WARN",
+          "summary": "ruff=128, bandit(high)=0, bandit(total)=25",
+          "details": {
+            "ruff_sample": [
+              {
+                "cell": null,
+                "code": "F541",
+                "end_location": {
+                  "column": 56,
+                  "row": 129
+                },
+                "filename": "/repo/backend/app/autonomy/ambiguity_resolver.py",
+                "fix": {
+                  "applicability": "safe",
+                  "edits": [
+                    {
+                      "content": "\"evidence_ledger hit\"",
+                      "end_location": {
+                        "column": 56,
+                        "row": 129
+                      },
+                      "location": {
+                        "column": 34,
+                        "row": 129
+                      }
+                    }
+                  ],
+                  "message": "Remove extraneous `f` prefix"
+                },
+                "location": {
+                  "column": 34,
+                  "row": 129
+                },
+                "message": "f-string without any placeholders",
+                "noqa_row": 129,
+                "url": "https://docs.astral.sh/ruff/rules/f-string-missing-placeholders"
+              },
+              {
+                "cell": null,
+                "code": "UP017",
+                "end_location": {
+                  "column": 38,
+                  "row": 210
+                },
+                "filename": "/repo/backend/app/autonomy/autonomy_auditor.py",
+                "fix": {
+                  "applicability": "safe",
+                  "edits": [
+                    {
+                      "content": "from datetime import datetime, timedelta, timezone, UTC",
+                      "end_location": {
+                        "column": 51,
+                        "row": 25
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 25
+                      }
+                    },
+                    {
+                      "content": "UTC",
+                      "end_location": {
+                        "column": 38,
+                        "row": 210
+                      },
+                      "location": {
+                        "column": 26,
+                        "row": 210
+                      }
+                    }
+                  ],
+                  "message": "Convert to `datetime.UTC` alias"
+                },
+                "location": {
+                  "column": 26,
+                  "row": 210
+                },
+                "message": "Use `datetime.UTC` alias",
+                "noqa_row": 210,
+                "url": "https://docs.astral.sh/ruff/rules/datetime-timezone-utc"
+              },
+              {
+                "cell": null,
+                "code": "UP017",
+                "end_location": {
+                  "column": 38,
+                  "row": 93
+                },
+                "filename": "/repo/backend/app/autonomy/calibration_engine.py",
+                "fix": {
+                  "applicability": "safe",
+                  "edits": [
+                    {
+                      "content": "from datetime import datetime, timedelta, timezone, UTC",
+                      "end_location": {
+                        "column": 51,
+                        "row": 17
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 17
+                      }
+                    },
+                    {
+                      "content": "UTC",
+                      "end_location": {
+                        "column": 38,
+                        "row": 93
+                      },
+                      "location": {
+                        "column": 26,
+                        "row": 93
+                      }
+                    }
+                  ],
+                  "message": "Convert to `datetime.UTC` alias"
+                },
+                "location": {
+                  "column": 26,
+                  "row": 93
+                },
+                "message": "Use `datetime.UTC` alias",
+                "noqa_row": 93,
+                "url": "https://docs.astral.sh/ruff/rules/datetime-timezone-utc"
+              },
+              {
+                "cell": null,
+                "code": "UP027",
+                "end_location": {
+                  "column": 59,
+                  "row": 128
+                },
+                "filename": "/repo/backend/app/autonomy/calibration_engine.py",
+                "fix": {
+                  "applicability": "safe",
+                  "edits": [
+                    {
+                      "content": "(float(x) for x in b[\"range\"].split(\"-\"))",
+                      "end_location": {
+                        "column": 59,
+                        "row": 128
+                      },
+                      "location": {
+                        "column": 18,
+                        "row": 128
+                      }
+                    }
+                  ],
+                  "message": "Replace with generator expression"
+                },
+                "location": {
+                  "column": 18,
+                  "row": 128
+                },
+                "message": "Replace unpacked list comprehension with a generator expression",
+                "noqa_row": 128,
+                "url": "https://docs.astral.sh/ruff/rules/unpacked-list-comprehension"
+              },
+              {
+                "cell": null,
+                "code": "UP017",
+                "end_location": {
+                  "column": 50,
+                  "row": 48
+                },
+                "filename": "/repo/backend/app/autonomy/credential_vault_universal.py",
+                "fix": {
+                  "applicability": "safe",
+                  "edits": [
+                    {
+                      "content": "from datetime import datetime, timezone, UTC",
+                      "end_location": {
+                        "column": 40,
+                        "row": 17
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 17
+                      }
+                    },
+                    {
+                      "content": "UTC",
+                      "end_location": {
+                        "column": 50,
+                        "row": 48
+                      },
+                      "location": {
+                        "column": 38,
+                        "row": 48
+                      }
+                    }
+                  ],
+                  "message": "Convert to `datetime.UTC` alias"
+                },
+                "location": {
+                  "column": 38,
+                  "row": 48
+                },
+                "message": "Use `datetime.UTC` alias",
+                "noqa_row": 48,
+                "url": "https://docs.astral.sh/ruff/rules/datetime-timezone-utc"
+              }
+            ],
+            "bandit_severity": {
+              "HIGH": 0,
+              "MEDIUM": 12,
+              "LOW": 13
+            }
+          },
+          "duration_s": 8.713
+        },
+        {
+          "name": "P1.4 mypy (lenient)",
+          "status": "PASS",
+          "summary": "0 erreur(s), 0 critique(s) (call-arg/arg-type/assignment/return-value)",
+          "details": {
+            "errors_total": 0,
+            "critical": 0,
+            "sample": []
+          },
+          "duration_s": 0.024
+        },
+        {
+          "name": "P1.5 OpenAPI contract",
+          "status": "PASS",
+          "summary": "175 endpoints declares, 0 requis manquants",
+          "details": {
+            "endpoint_count": 175,
+            "missing_required": [],
+            "components": [
+              "HTTPValidationError",
+              "HealthResponse",
+              "LoginRequest",
+              "TaskCreate",
+              "TaskOut",
+              "TokenResponse",
+              "UserCreate",
+              "UserOut",
+              "ValidationError"
+            ]
+          },
+          "duration_s": 0.817
+        },
+        {
+          "name": "P1.6 Imports coherence (app.*)",
+          "status": "PASS",
+          "summary": "61 modules 'app.*' references, 0 introuvables",
+          "details": {
+            "modules_referenced": [
+              "app.agents.base_agent",
+              "app.agents.bootstrap_agent",
+              "app.agents.claude_code_agent",
+              "app.agents.conformite_dz_agent",
+              "app.agents.datadog_agent",
+              "app.agents.docker_agent",
+              "app.agents.linter_agent",
+              "app.agents.pytest_agent",
+              "app.agents.readme_agent",
+              "app.agents.registry",
+              "app.agents.security_agent",
+              "app.agents.sonarqube_agent",
+              "app.agents.terraform_agent",
+              "app.agents.workspace",
+              "app.autonomy",
+              "app.autonomy.autonomy_ladder",
+              "app.autonomy.autonomy_simulation_lab",
+              "app.autonomy.human_necessity_proof",
+              "app.cognition",
+              "app.cognition.reasoning_core",
+              "app.cognition.reasoning_trace_models",
+              "app.config",
+              "app.ctc",
+              "app.database",
+              "app.governance",
+              "app.governance._json_utils",
+              "app.governance.invariants_runtime",
+              "app.inbox",
+              "app.inbox.user_interaction_router",
+              "app.intake",
+              "app.intake.ambiguity_detector",
+              "app.intake.field_collector",
+              "app.intake.requirement_extractor",
+              "app.intake.universal_intake",
+              "app.integrations.sonarqube_client",
+              "app.integrations.vault_client",
+              "app.middleware.rate_limiter",
+              "app.middleware.tenant",
+              "app.orchestration",
+              "app.orchestration.auto_tuner",
+              "app.orchestration.confidence_report",
+              "app.orchestration.confidence_scorer",
+              "app.orchestration.context_optimizer",
+              "app.orchestration.contradiction_detector",
+              "app.orchestration.cost_optimizer",
+              "app.orchestration.domain_classifier",
+              "app.orchestration.escalator",
+              "app.orchestration.memory_engine",
+              "app.orchestration.patch_types",
+              "app.orchestration.prompt_ab",
+              "app.orchestration.tri_brain",
+              "app.orchestrator",
+              "app.provisioning",
+              "app.provisioning.browser_ops_agent",
+              "app.routers",
+              "app.schemas",
+              "app.validation.level_zero",
+              "app.validation.pipeline",
+              "app.workers._runtime",
+              "app.workers.event_workflows",
+              "app.workers.tasks"
+            ],
+            "missing": []
+          },
+          "duration_s": 2.519
+        },
+        {
+          "name": "P1.7 CDC DZ conformity (8 regles)",
+          "status": "PASS",
+          "summary": "8/8 regles presentes",
+          "details": {
+            "missing": []
+          },
+          "duration_s": 0.012
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 · Verification par ligne",
+      "status": "WARN",
+      "score": 0.7143,
+      "duration_s": 20.94,
+      "checks": [
+        {
+          "name": "P2.1 Cyclomatic complexity (gate CC>15, dense<22)",
+          "status": "WARN",
+          "summary": "1343 blocs, 36 dense (11-15), 0 trop complexe (>15)",
+          "details": {
+            "dense_cc_11_15": [
+              {
+                "path": "/repo/backend/app/orchestrator.py",
+                "name": "run_dag",
+                "cc": 14
+              },
+              {
+                "path": "/repo/backend/app/worker.py",
+                "name": "run_task",
+                "cc": 15
+              },
+              {
+                "path": "/repo/backend/app/worker.py",
+                "name": "_derive_defect_classes",
+                "cc": 12
+              },
+              {
+                "path": "/repo/backend/app/agents/readme_agent.py",
+                "name": "_render",
+                "cc": 13
+              },
+              {
+                "path": "/repo/backend/app/autonomy/autonomy_auditor.py",
+                "name": "_load_raw",
+                "cc": 11
+              }
+            ],
+            "too_complex_cc_15_plus": []
+          },
+          "duration_s": 2.478
+        },
+        {
+          "name": "P2.2 Dead code (vulture conf>=80)",
+          "status": "WARN",
+          "summary": "6 candidat(s) de code mort",
+          "details": {
+            "sample": [
+              "backend/app/cognition/mcts_reasoning.py:95: unused variable 'root_state' (100% confidence)",
+              "backend/app/ctc/assertion_normalizer.py:101: unused variable 'source_version' (100% confidence)",
+              "backend/app/routers/truth.py:70: unused import 'backward_compatibility_checker' (90% confidence)",
+              "backend/app/routers/truth.py:70: unused import 'differential_analyzer' (90% confidence)",
+              "backend/app/routers/truth.py:70: unused import 'rework_engine' (90% confidence)",
+              "backend/app/routers/truth.py:70: unused import 'truth_judge' (90% confidence)"
+            ]
+          },
+          "duration_s": 6.235
+        },
+        {
+          "name": "P2.3 Secrets hardcodes",
+          "status": "PASS",
+          "summary": "0 secret(s) suspect(s) detecte(s)",
+          "details": {
+            "findings": []
+          },
+          "duration_s": 2.721
+        },
+        {
+          "name": "P2.4 Conventions nommage",
+          "status": "PASS",
+          "summary": "0 violation(s) naming",
+          "details": {
+            "sample": []
+          },
+          "duration_s": 2.151
+        },
+        {
+          "name": "P2.5 Duplications de fonctions",
+          "status": "PASS",
+          "summary": "0 cluster(s) de duplications",
+          "details": {
+            "clusters": []
+          },
+          "duration_s": 3.032
+        },
+        {
+          "name": "P2.6 Docstrings publiques (gate 40%)",
+          "status": "WARN",
+          "summary": "317/816 fonctions publiques documentees (39%)",
+          "details": {
+            "missing_sample": [
+              {
+                "path": "backend/app/agents/base_agent.py",
+                "line": 32,
+                "name": "initialize"
+              },
+              {
+                "path": "backend/app/agents/base_agent.py",
+                "line": 39,
+                "name": "execute"
+              },
+              {
+                "path": "backend/app/agents/claude_code_agent.py",
+                "line": 75,
+                "name": "builder"
+              },
+              {
+                "path": "backend/app/agents/registry.py",
+                "line": 94,
+                "name": "get_instance"
+              },
+              {
+                "path": "backend/app/agents/registry.py",
+                "line": 101,
+                "name": "reset"
+              },
+              {
+                "path": "backend/app/agents/registry.py",
+                "line": 113,
+                "name": "get"
+              },
+              {
+                "path": "backend/app/agents/registry.py",
+                "line": 119,
+                "name": "list_all"
+              },
+              {
+                "path": "backend/app/agents/registry.py",
+                "line": 132,
+                "name": "initialize_all"
+              }
+            ],
+            "ratio": 0.388
+          },
+          "duration_s": 2.189
+        },
+        {
+          "name": "P2.7 Gestion erreurs (bare except / except pass)",
+          "status": "WARN",
+          "summary": "2 pattern(s) douteux",
+          "details": {
+            "sample": [
+              {
+                "path": "backend/app/cognition/human_reasoning_override.py",
+                "line": 58,
+                "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/ctc/truth_explainability_api.py",
+                "line": 32,
+                "kind": "except_pass"
+              }
+            ]
+          },
+          "duration_s": 2.149
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 · Cross-validation",
+      "status": "PASS",
+      "score": 1.0,
+      "duration_s": 1.42,
+      "checks": [
+        {
+          "name": "P3.1 Coherence front <-> back",
+          "status": "PASS",
+          "summary": "0 ecart(s)",
+          "details": {
+            "issues": []
+          },
+          "duration_s": 0.026
+        },
+        {
+          "name": "P3.2 BDD <-> models <-> migrations",
+          "status": "PASS",
+          "summary": "96 tables, 0 manquantes",
+          "details": {
+            "tables": [
+              "agent_benchmarks",
+              "agent_executions",
+              "agent_marketplace",
+              "ambiguity_ledger",
+              "api_usage",
+              "artifacts",
+              "audit_events",
+              "audit_logs",
+              "autonomy_chaos_runs",
+              "autonomy_metrics",
+              "bias_reports",
+              "blocked_user_asks",
+              "chain_traces",
+              "circuit_breaker_events",
+              "cognitive_adversarial_tests",
+              "cognitive_benchmarks",
+              "cognitive_decisions",
+              "cognitive_human_overrides",
+              "cognitive_kill_events",
+              "cognitive_reproducibility_runs",
+              "compliance_matrix",
+              "constitutional_checks",
+              "correlation_ledger",
+              "dag_checkpoints",
+              "dead_letter_queue",
+              "debate_sessions",
+              "decision_router_log",
+              "decisions_audit",
+              "defect_taxonomy",
+              "drift_alerts",
+              "dz_rules_config",
+              "error_catalog",
+              "event_triggers",
+              "evidence_chain_events",
+              "evidence_chain_integrity_log",
+              "evidence_harvesting_log",
+              "evidence_ledger",
+              "evidence_signing_keys",
+              "graph_traces",
+              "hard_boundary_registry",
+              "human_necessity_proofs",
+              "human_overrides",
+              "hypotheses",
+              "improvement_backlog",
+              "incident_log",
+              "innovation_items",
+              "intervention_outcomes",
+              "mcts_runs",
+              "meta_cognitive_reports",
+              "meta_metrics_snapshots",
+              "meta_truth_audits",
+              "negative_escalation_registry",
+              "network_audit_log",
+              "pending_questions",
+              "pending_user_inputs",
+              "permission_leases",
+              "phase_gate_definitions",
+              "phase_gate_failures",
+              "phase_gates",
+              "project_memory",
+              "promotion_stages",
+              "prompt_variants",
+              "quorum_decisions",
+              "reasoning_cache",
+              "reasoning_dependencies",
+              "reasoning_edges",
+              "reasoning_nodes",
+              "reasoning_promotions",
+              "reasoning_traces",
+              "reflections",
+              "rollback_events",
+              "runtime_baselines",
+              "runtime_metrics",
+              "semantic_cache",
+              "sessions",
+              "system_parameters",
+              "tasks",
+              "tenants",
+              "tool_registry",
+              "tree_traces",
+              "truth_assertion_links",
+              "truth_assertions",
+              "truth_backward_replay",
+              "truth_budget_usage",
+              "truth_chaos_runs",
+              "truth_conflicts",
+              "truth_engine_snapshots",
+              "truth_kpi_snapshots",
+              "truth_sources",
+              "uncertainty_reports",
+              "users",
+              "validation_logs",
+              "validation_thresholds",
+              "workflow_executions",
+              "workflow_metrics",
+              "workflow_schedules"
+            ],
+            "missing": [],
+            "has_pydantic_schemas": true
+          },
+          "duration_s": 0.128
+        },
+        {
+          "name": "P3.3 Agents <-> registry <-> DAG",
+          "status": "PASS",
+          "summary": "catalog=24 real=11 dag=10",
+          "details": {
+            "issues": []
+          },
+          "duration_s": 1.071
+        },
+        {
+          "name": "P3.4 Config <-> env.example <-> compose",
+          "status": "PASS",
+          "summary": "39 cles .env.example, 0 ecart(s)",
+          "details": {
+            "env_count": 39,
+            "issues": []
+          },
+          "duration_s": 0.054
+        },
+        {
+          "name": "P3.5 Pipeline <-> scoring <-> verdicts",
+          "status": "PASS",
+          "summary": "LEVEL_WEIGHTS=1.0 conf=1.0",
+          "details": {
+            "issues": []
+          },
+          "duration_s": 0.079
+        },
+        {
+          "name": "P3.6 Memoire <-> benchmarks <-> cost",
+          "status": "PASS",
+          "summary": "7/7 modules presents",
+          "details": {
+            "issues": []
+          },
+          "duration_s": 0.041
+        },
+        {
+          "name": "P3.7 Securite bout-en-bout",
+          "status": "PASS",
+          "summary": "5/5 controles OK",
+          "details": {
+            "issues": []
+          },
+          "duration_s": 0.019
+        }
+      ]
+    },
+    {
+      "name": "Phase 4 · Stress",
+      "status": "WARN",
+      "score": 0.9286,
+      "duration_s": 290.79,
+      "checks": [
+        {
+          "name": "P4.1 10 Classe A paralleles",
+          "status": "PASS",
+          "summary": "10/10 completed, 10/10 termines",
+          "details": {
+            "task_ids": [
+              "7e9e5897-751d-4912-ad80-25113b5da154",
+              "a8e0544c-5ac7-4b7c-931d-71e4ed174438",
+              "ce0a559a-5f54-4736-9e0c-277f0f98a179",
+              "fcb770d8-f821-4d01-9572-c6123e9f2299",
+              "dc1fef82-6671-4f4a-b55b-a33bd320f511",
+              "d42c9a62-3548-43de-821d-34578ae9dfda",
+              "4b1c46fc-532a-4d5f-908d-d6b0e7b55900",
+              "bcb330db-94ca-45a6-9df4-b07a84fbc953",
+              "dcbcfdb6-0eba-4810-9757-23acdb7d107d",
+              "4248e5e9-8798-4fc8-9aab-56f93753e79b"
+            ]
+          },
+          "duration_s": 163.706
+        },
+        {
+          "name": "P4.2 Classe B complet (Paie DZ profond)",
+          "status": "WARN",
+          "summary": "status=failed score=0.7",
+          "details": {
+            "task_id": "83ab037c-b1ee-41bd-89f7-74a94feee540"
+          },
+          "duration_s": 124.996
+        },
+        {
+          "name": "P4.3 Logique rework / raffinement",
+          "status": "PASS",
+          "summary": "refine=True rework_count_schema=True",
+          "details": {
+            "max_rounds_found": true
+          },
+          "duration_s": 0.03
+        },
+        {
+          "name": "P4.4 Fallback Anthropic timeout / quota",
+          "status": "PASS",
+          "summary": "template_fn=True exception_handler=True",
+          "details": {},
+          "duration_s": 0.018
+        },
+        {
+          "name": "P4.5 DB + analytics sous charge",
+          "status": "PASS",
+          "summary": "health=200 overview=200 marketplace=200",
+          "details": {
+            "db": true,
+            "redis": true,
+            "last_attempts": {
+              "health": 200,
+              "overview": 200,
+              "marketplace": 200
+            }
+          },
+          "duration_s": 0.048
+        },
+        {
+          "name": "P4.6 WebSocket 100 connexions",
+          "status": "PASS",
+          "summary": "100/100 ouvertes, 100 premiers messages recus",
+          "details": {
+            "failed": 0
+          },
+          "duration_s": 1.938
+        },
+        {
+          "name": "P4.7 Injection SQL + XSS + prompt",
+          "status": "PASS",
+          "summary": "3 injections testees, 0 probleme(s)",
+          "details": {
+            "findings": []
+          },
+          "duration_s": 0.175
+        }
+      ]
+    },
+    {
+      "name": "Phase 5 · V4.2 Quality Gates",
+      "status": "PASS",
+      "score": 1.0,
+      "duration_s": 0.33,
+      "checks": [
+        {
+          "name": "P5.1 V4.2 modules (24+5)",
+          "status": "PASS",
+          "summary": "29/29 modules presents",
+          "details": {
+            "missing": []
+          },
+          "duration_s": 0.12
+        },
+        {
+          "name": "P5.2 Test manifests (4 types)",
+          "status": "PASS",
+          "summary": "4/4 manifests",
+          "details": {
+            "missing": []
+          },
+          "duration_s": 0.021
+        },
+        {
+          "name": "P5.3 Migration 008 tables V4.2",
+          "status": "PASS",
+          "summary": "9/9 tables declarees",
+          "details": {
+            "missing": []
+          },
+          "duration_s": 0.007
+        },
+        {
+          "name": "P5.4 DZ rules seedees",
+          "status": "PASS",
+          "summary": "8 regles actives (>=8 requis)",
+          "details": {},
+          "duration_s": 0.008
+        },
+        {
+          "name": "P5.5 Innovation pipeline 8 stages + rejete",
+          "status": "PASS",
+          "summary": "9 stages, transitions definies",
+          "details": {},
+          "duration_s": 0.034
+        },
+        {
+          "name": "P5.6 Quality Kernel : invariants",
+          "status": "PASS",
+          "summary": "6 invariants signes",
+          "details": {},
+          "duration_s": 0.118
+        },
+        {
+          "name": "P5.7 Patch types : matrice revalidation complete",
+          "status": "PASS",
+          "summary": "6/6 types couverts",
+          "details": {
+            "missing": []
+          },
+          "duration_s": 0.023
+        }
+      ]
+    }
+  ]
+}
