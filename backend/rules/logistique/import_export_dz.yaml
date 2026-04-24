@@ -1,0 +1,29 @@
+rules:
+  - id: logistique_import_droits_douane_standard
+    version: "1.0.0"
+    description: "Droits douane standard DZ 30% CAF"
+    when: "input.operation == 'import' and input.categorie == 'standard'"
+    compute:
+      droits_douane_taux: 0.30
+      droits_douane_montant: "input.valeur_caf * 0.30"
+    priority: 10
+
+  - id: logistique_import_exempte_matiere_premiere
+    version: "1.0.0"
+    description: "Matieres premieres industrielles : droits reduits 5%"
+    when: "input.operation == 'import' and input.categorie == 'matiere_premiere'"
+    compute:
+      droits_douane_taux: 0.05
+      droits_douane_montant: "input.valeur_caf * 0.05"
+    priority: 5
+
+  - id: logistique_export_exoneration
+    version: "1.0.0"
+    description: "Exportations : 0% TVA + 0% douane"
+    when: "input.operation == 'export'"
+    compute:
+      droits_douane_taux: 0.0
+      droits_douane_montant: 0
+      tva_taux: 0.0
+      exoneration: true
+    priority: 1

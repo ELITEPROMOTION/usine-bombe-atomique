@@ -1,0 +1,29 @@
+rules:
+  - id: rh_conges_annuels_standard
+    version: "1.0.0"
+    description: "Droit conges annuels DZ : 2.5 jours/mois de travail effectif"
+    when: "input.mois_travailles >= 1"
+    compute:
+      conges_acquis_jours: "input.mois_travailles * 2.5"
+      conges_max_annuel: 30
+    priority: 10
+
+  - id: rh_conge_maternite
+    version: "1.0.0"
+    description: "Conge maternite DZ : 14 semaines (98 jours) payes a 100%"
+    when: "input.type_conge == 'maternite'"
+    compute:
+      duree_jours: 98
+      taux_remuneration: 1.0
+      finance_par: "cnas"
+    priority: 5
+
+  - id: rh_conge_maladie
+    version: "1.0.0"
+    description: "Indemnite maladie : 50% les 15 premiers jours, 100% au-dela"
+    when: "input.type_conge == 'maladie'"
+    compute:
+      taux_15_premiers: 0.50
+      taux_au_dela: 1.0
+      jours_employeur: 15
+    priority: 5

@@ -1,0 +1,28 @@
+rules:
+  - id: compta_ecriture_equilibre
+    version: "1.0.0"
+    description: "Ecriture comptable DOIT etre equilibree (debit == credit)"
+    validate: "input.total_debit == input.total_credit"
+    when: "input.type == 'ecriture'"
+    compute:
+      equilibre: "input.total_debit == input.total_credit"
+      ecart: "input.total_debit - input.total_credit"
+    priority: 1
+
+  - id: compta_ecriture_tva_deductible
+    version: "1.0.0"
+    description: "TVA deductible : compte 44566"
+    when: "input.type == 'ecriture' and input.nature == 'achat'"
+    compute:
+      compte_tva_deductible: 44566
+      ventilation: "HT au 6xx, TVA au 44566, TTC au 40x"
+    priority: 10
+
+  - id: compta_ecriture_tva_collectee
+    version: "1.0.0"
+    description: "TVA collectee : compte 44571"
+    when: "input.type == 'ecriture' and input.nature == 'vente'"
+    compute:
+      compte_tva_collectee: 44571
+      ventilation: "HT au 7xx, TVA au 44571, TTC au 41x"
+    priority: 10

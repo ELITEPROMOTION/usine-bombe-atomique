@@ -1,0 +1,41 @@
+rules:
+  - id: fiscal_dz_irg_tranche_1_exonere
+    version: "2026.01"
+    description: "IRG tranche 1 : 0 - 120 000 DZD annuel exonere (Loi Finance 2022+)"
+    when: "input.revenu_annuel <= 120000"
+    compute:
+      tranche: 1
+      taux_effectif: 0.0
+      irg_annuel: 0
+      raison: "exoneration"
+    priority: 10
+
+  - id: fiscal_dz_irg_tranche_2
+    version: "2026.01"
+    description: "IRG tranche 2 : 120 001 - 360 000 au taux 20%"
+    when: "input.revenu_annuel > 120000 and input.revenu_annuel <= 360000"
+    compute:
+      tranche: 2
+      taux_marginal: 0.20
+      irg_annuel: "(input.revenu_annuel - 120000) * 0.20"
+    priority: 20
+
+  - id: fiscal_dz_irg_tranche_3
+    version: "2026.01"
+    description: "IRG tranche 3 : 360 001 - 1 440 000 au taux 30%"
+    when: "input.revenu_annuel > 360000 and input.revenu_annuel <= 1440000"
+    compute:
+      tranche: 3
+      taux_marginal: 0.30
+      irg_annuel: "48000 + (input.revenu_annuel - 360000) * 0.30"
+    priority: 30
+
+  - id: fiscal_dz_irg_tranche_4
+    version: "2026.01"
+    description: "IRG tranche 4 : > 1 440 000 au taux 35%"
+    when: "input.revenu_annuel > 1440000"
+    compute:
+      tranche: 4
+      taux_marginal: 0.35
+      irg_annuel: "372000 + (input.revenu_annuel - 1440000) * 0.35"
+    priority: 40

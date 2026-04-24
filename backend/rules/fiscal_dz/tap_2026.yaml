@@ -1,0 +1,9 @@
+rules:
+  - id: fiscal_dz_tap_standard
+    version: "2026.01"
+    description: "TAP (Taxe activite professionnelle) 2% sur CA"
+    when: "input.ca_annuel >= 0"
+    compute:
+      taux_tap: 0.02
+      tap_annuel: "input.ca_annuel * 0.02"
+    priority: 10

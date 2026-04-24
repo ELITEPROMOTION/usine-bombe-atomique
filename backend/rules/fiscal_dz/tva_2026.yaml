@@ -1,0 +1,39 @@
+rules:
+  - id: fiscal_dz_tva_normale
+    version: "2026.01"
+    description: "TVA taux normal 19% DZ"
+    when: "input.produit_type == 'normal' and input.destinataire != 'export'"
+    compute:
+      taux_tva: 0.19
+      tva_collectee: "input.ht * 0.19"
+      ttc: "input.ht * 1.19"
+    priority: 10
+
+  - id: fiscal_dz_tva_reduit
+    version: "2026.01"
+    description: "TVA taux reduit 9% (services, produits agricoles, medicaments)"
+    when: "input.produit_type == 'reduit'"
+    compute:
+      taux_tva: 0.09
+      tva_collectee: "input.ht * 0.09"
+      ttc: "input.ht * 1.09"
+    priority: 5
+
+  - id: fiscal_dz_tva_exoneration_export
+    version: "2026.01"
+    description: "TVA 0% sur exportations"
+    when: "input.destinataire == 'export'"
+    compute:
+      taux_tva: 0.0
+      tva_collectee: 0
+      ttc: "input.ht"
+    priority: 1
+
+  - id: fiscal_dz_tva_assujettis_min
+    version: "2026.01"
+    description: "Seuil assujettissement TVA 30M DZD (regime reel)"
+    when: "input.ca_annuel < 30000000"
+    compute:
+      assujetti_tva: false
+      raison: "sous_seuil_30M_DZD"
+    priority: 50

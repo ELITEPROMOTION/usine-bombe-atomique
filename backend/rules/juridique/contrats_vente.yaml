@@ -1,0 +1,36 @@
+rules:
+  - id: juridique_contrat_vente_parties_required
+    version: "1.0.0"
+    description: "Contrat vente DOIT avoir vendeur + acheteur identifies"
+    validate: "input.vendeur != null and input.acheteur != null"
+    when: "input.type_acte == 'vente'"
+    compute:
+      conformite: "parties_ok"
+    priority: 1
+    guard: "input.vendeur != null and input.acheteur != null"
+
+  - id: juridique_vente_immo_droits_enreg
+    version: "1.0.0"
+    description: "Vente immobiliere : droits enregistrement 5% du prix"
+    when: "input.type_acte == 'vente' and input.categorie == 'immobilier'"
+    compute:
+      droits_enregistrement_taux: 0.05
+      droits_enregistrement_montant: "input.prix * 0.05"
+    priority: 10
+
+  - id: juridique_vente_immo_timbre
+    version: "1.0.0"
+    description: "Vente immobiliere : droit de timbre fixe 1000 DZD"
+    when: "input.type_acte == 'vente' and input.categorie == 'immobilier'"
+    compute:
+      droit_timbre_montant: 1000
+    priority: 20
+
+  - id: juridique_vente_mobiliere_droits
+    version: "1.0.0"
+    description: "Vente mobiliere : droits 2% du prix"
+    when: "input.type_acte == 'vente' and input.categorie == 'mobilier'"
+    compute:
+      droits_enregistrement_taux: 0.02
+      droits_enregistrement_montant: "input.prix * 0.02"
+    priority: 10

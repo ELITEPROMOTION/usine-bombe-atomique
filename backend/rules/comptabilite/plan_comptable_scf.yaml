@@ -1,0 +1,70 @@
+rules:
+  - id: compta_scf_class1_capitaux
+    version: "1.0.0"
+    description: "Classe 1 : Comptes de capitaux (100-199)"
+    when: "input.numero_compte >= 100 and input.numero_compte <= 199"
+    compute:
+      classe: 1
+      categorie: "capitaux"
+      nature: "passif"
+    priority: 10
+
+  - id: compta_scf_class2_immos
+    version: "1.0.0"
+    description: "Classe 2 : Immobilisations (200-299)"
+    when: "input.numero_compte >= 200 and input.numero_compte <= 299"
+    compute:
+      classe: 2
+      categorie: "immobilisations"
+      nature: "actif"
+    priority: 10
+
+  - id: compta_scf_class3_stocks
+    version: "1.0.0"
+    description: "Classe 3 : Stocks (300-399)"
+    when: "input.numero_compte >= 300 and input.numero_compte <= 399"
+    compute:
+      classe: 3
+      categorie: "stocks"
+      nature: "actif"
+    priority: 10
+
+  - id: compta_scf_class4_tiers
+    version: "1.0.0"
+    description: "Classe 4 : Tiers (400-499)"
+    when: "input.numero_compte >= 400 and input.numero_compte <= 499"
+    compute:
+      classe: 4
+      categorie: "tiers"
+      nature: "mixte"
+    priority: 10
+
+  - id: compta_scf_class5_financiers
+    version: "1.0.0"
+    description: "Classe 5 : Financiers (500-599)"
+    when: "input.numero_compte >= 500 and input.numero_compte <= 599"
+    compute:
+      classe: 5
+      categorie: "financiers"
+      nature: "actif"
+    priority: 10
+
+  - id: compta_scf_class6_charges
+    version: "1.0.0"
+    description: "Classe 6 : Charges (600-699)"
+    when: "input.numero_compte >= 600 and input.numero_compte <= 699"
+    compute:
+      classe: 6
+      categorie: "charges"
+      nature: "debit"
+    priority: 10
+
+  - id: compta_scf_class7_produits
+    version: "1.0.0"
+    description: "Classe 7 : Produits (700-799)"
+    when: "input.numero_compte >= 700 and input.numero_compte <= 799"
+    compute:
+      classe: 7
+      categorie: "produits"
+      nature: "credit"
+    priority: 10

@@ -1,0 +1,28 @@
+rules:
+  - id: juridique_bail_commercial_duree_min
+    version: "1.0.0"
+    description: "Bail commercial DZ : duree minimale 2 ans"
+    validate: "input.duree_mois >= 24"
+    when: "input.type_acte == 'bail_commercial'"
+    compute:
+      conformite_duree: "input.duree_mois >= 24"
+    priority: 10
+
+  - id: juridique_bail_commercial_caution
+    version: "1.0.0"
+    description: "Bail commercial : caution max 3 mois de loyer"
+    validate: "input.caution <= input.loyer_mensuel * 3"
+    when: "input.type_acte == 'bail_commercial' and input.caution != null"
+    compute:
+      caution_valide: "input.caution <= input.loyer_mensuel * 3"
+      caution_max: "input.loyer_mensuel * 3"
+    priority: 20
+
+  - id: juridique_bail_commercial_revision
+    version: "1.0.0"
+    description: "Indexation loyer : max 5% par an"
+    when: "input.type_acte == 'bail_commercial' and input.revision_annuelle != null"
+    compute:
+      revision_valide: "input.revision_annuelle <= 0.05"
+      revision_max_pct: 0.05
+    priority: 30

@@ -1,0 +1,37 @@
+rules:
+  - id: rh_paie_cnas_salarie
+    version: "2026.01"
+    description: "Cotisation CNAS part salariale 9% du brut"
+    when: "input.salaire_brut_mensuel > 0"
+    compute:
+      cnas_salarie_taux: 0.09
+      cnas_salarie_montant: "input.salaire_brut_mensuel * 0.09"
+    priority: 10
+
+  - id: rh_paie_cnas_employeur
+    version: "2026.01"
+    description: "Cotisation CNAS part patronale 26% du brut"
+    when: "input.salaire_brut_mensuel > 0"
+    compute:
+      cnas_employeur_taux: 0.26
+      cnas_employeur_montant: "input.salaire_brut_mensuel * 0.26"
+    priority: 11
+
+  - id: rh_paie_irg_mensuel_tr1
+    version: "2026.01"
+    description: "IRG mensuel tranche 1 (10 000 DZD exonere)"
+    when: "(input.salaire_brut_mensuel - input.salaire_brut_mensuel * 0.09) <= 10000"
+    compute:
+      irg_mensuel: 0
+      salaire_net: "input.salaire_brut_mensuel - input.salaire_brut_mensuel * 0.09"
+    priority: 20
+
+  - id: rh_paie_smig_2026
+    version: "2026.01"
+    description: "SMIG 20 000 DZD/mois DZ 2026"
+    when: "input.salaire_brut_mensuel < 20000"
+    compute:
+      alerte_sous_smig: true
+      smig_dz: 20000
+      manque: "20000 - input.salaire_brut_mensuel"
+    priority: 1

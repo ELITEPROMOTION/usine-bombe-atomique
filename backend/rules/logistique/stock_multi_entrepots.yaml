@@ -1,0 +1,36 @@
+rules:
+  - id: logistique_stock_seuil_reappro
+    version: "1.0.0"
+    description: "Declenche reappro si stock <= seuil_min"
+    when: "input.stock_actuel <= input.seuil_min"
+    compute:
+      besoin_reappro: true
+      quantite_commandee: "input.seuil_max - input.stock_actuel"
+      urgence: "input.stock_actuel <= input.seuil_critique"
+    priority: 10
+
+  - id: logistique_stock_over
+    version: "1.0.0"
+    description: "Alerte surstockage si > 150% seuil max"
+    when: "input.stock_actuel > input.seuil_max * 1.5"
+    compute:
+      surstockage: true
+      excess: "input.stock_actuel - input.seuil_max"
+    priority: 20
+
+  - id: logistique_stock_valorisation_cmp
+    version: "1.0.0"
+    description: "Valorisation Cout Moyen Pondere"
+    when: "input.methode == 'cmp'"
+    compute:
+      cmp: "(input.stock_actuel * input.prix_unitaire + input.nouveaux_arrivages * input.nouveau_prix) / (input.stock_actuel + input.nouveaux_arrivages)"
+    priority: 10
+
+  - id: logistique_peremption_alerte
+    version: "1.0.0"
+    description: "Alerte peremption dans 30 jours"
+    when: "input.jours_avant_peremption <= 30"
+    compute:
+      alerte_peremption: true
+      urgence: "input.jours_avant_peremption <= 7"
+    priority: 5

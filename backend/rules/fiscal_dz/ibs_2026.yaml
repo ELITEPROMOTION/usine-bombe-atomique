@@ -1,0 +1,27 @@
+rules:
+  - id: fiscal_dz_ibs_standard
+    version: "2026.01"
+    description: "IBS taux normal 26% (commerce, services : activites non reduites)"
+    when: "input.regime == 'reel' and input.activite != 'btp' and input.activite != 'tourisme' and input.activite != 'agriculture' and input.activite != 'production'"
+    compute:
+      taux_ibs: 0.26
+      ibs_annuel: "input.benefice_imposable * 0.26"
+    priority: 10
+
+  - id: fiscal_dz_ibs_btp
+    version: "2026.01"
+    description: "IBS BTP/tourisme/agriculture 23%"
+    when: "input.activite == 'btp' or input.activite == 'tourisme' or input.activite == 'agriculture'"
+    compute:
+      taux_ibs: 0.23
+      ibs_annuel: "input.benefice_imposable * 0.23"
+    priority: 5
+
+  - id: fiscal_dz_ibs_production_biens
+    version: "2026.01"
+    description: "IBS activites de production de biens 19%"
+    when: "input.activite == 'production'"
+    compute:
+      taux_ibs: 0.19
+      ibs_annuel: "input.benefice_imposable * 0.19"
+    priority: 3
