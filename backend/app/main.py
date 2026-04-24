@@ -19,6 +19,7 @@ from app.routers import (
     domains,
     features,
     health,
+    intelligence,
     provisioning,
     resilience,
     slo,
@@ -85,4 +86,5 @@ app.include_router(features.router, prefix=f"{settings.API_PREFIX}", tags=["feat
 app.include_router(resilience.router, prefix=f"{settings.API_PREFIX}", tags=["resilience_v5_7"])
 app.include_router(slo.router, prefix=f"{settings.API_PREFIX}", tags=["slo_v5_7"])
 app.include_router(health_v2_router, prefix=f"{settings.API_PREFIX}", tags=["health_v5_7"])
+app.include_router(intelligence.router, prefix=f"{settings.API_PREFIX}", tags=["intelligence_v5_8"])
 app.include_router(websocket.router, tags=["ws"])
