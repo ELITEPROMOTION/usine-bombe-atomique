@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 BUDGETS = {
     "P0": 10**9,     # "illimite" (borne par kill-switch)
     "P1": 50_000,

@@ -22,7 +22,7 @@ import json
 import logging
 import statistics
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -207,7 +207,7 @@ async def compute(
     pool: asyncpg.Pool, window_hours: int = 168,
 ) -> AutonomyKPIs:
     """Calcule les KPIs sur une fenetre glissante (7j par defaut)."""
-    since = datetime.now(timezone.utc) - timedelta(hours=window_hours)
+    since = datetime.now(UTC) - timedelta(hours=window_hours)
     raw = await _load_raw(pool, since)
     kpis = AutonomyKPIs(window_hours=window_hours)
 

@@ -5,11 +5,10 @@ Judge peut proposer HYBRID_SYNTHESIS.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
 
 from app.cognition.reasoning_trace_models import DebateRound, DebateTrace
-
 
 MAX_ROUNDS = 5
 EARLY_CONVERGENCE_ROUND = 2

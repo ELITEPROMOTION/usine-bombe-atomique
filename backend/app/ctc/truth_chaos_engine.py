@@ -4,14 +4,11 @@
 """
 from __future__ import annotations
 
-import json
 import random
-import time
 from dataclasses import dataclass
 from typing import Any
 
 import asyncpg
-
 
 SCENARIOS = [
     "postgres_unavailable",

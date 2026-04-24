@@ -9,7 +9,7 @@ toutes les depenses SaaS pour toujours").
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -31,7 +31,7 @@ class Lease:
 
     @property
     def active(self) -> bool:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (self.revoked_at is None and self.expires_at > now
                 and self.usage_count < self.usage_cap)
 
@@ -54,7 +54,7 @@ async def grant(
     cap_currency: str | None = None, usage_cap: int = 1,
     task_id: str | None = None, granter: str = "ahmed",
 ) -> Lease:
-    expires = datetime.now(timezone.utc) + timedelta(days=duration_days)
+    expires = datetime.now(UTC) + timedelta(days=duration_days)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """

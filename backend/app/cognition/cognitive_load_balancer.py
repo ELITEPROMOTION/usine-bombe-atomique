@@ -10,7 +10,6 @@ from typing import Any
 
 import asyncpg
 
-
 DEDICATED_QUEUE = "cognitive_reasoning_tasks"
 MAX_IN_FLIGHT_PER_TIER = {"P0": 5, "P1": 10, "P2": 20, "P3": 40}
 

@@ -61,25 +61,19 @@ Endpoints :
 """
 from __future__ import annotations
 
-import os
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from app.ctc import (
-    assertion_normalizer,
     assertion_risk_detector,
     auto_triangulator,
-    backward_compatibility_checker,
     continuous_validators,
-    differential_analyzer,
     evidence_chain,
     evidence_harvester,
     human_override_manager,
     meta_truth_auditor,
     phase_gate_enforcer,
-    rework_engine,
     seven_layer_validator,
     source_registry,
     truth_budget_manager,
@@ -87,10 +81,8 @@ from app.ctc import (
     truth_engine_snapshotter,
     truth_explainability_api,
     truth_graph,
-    truth_judge,
 )
 from app.database import get_pool
-
 
 router = APIRouter()
 

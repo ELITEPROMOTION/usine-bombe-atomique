@@ -11,7 +11,6 @@ from typing import Any
 
 from app.cognition.reasoning_trace_models import MetaCognitiveReport, ProblemType
 
-
 # Patterns de classification probleme
 PATTERNS: dict[ProblemType, list[re.Pattern[str]]] = {
     "simple":     [re.compile(r"\b(what is|qu'est-ce que|combien|when|quand)\b", re.I)],

@@ -13,7 +13,6 @@ Routes :
 """
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from arq import create_pool
@@ -22,7 +21,6 @@ from fastapi import APIRouter, HTTPException
 
 from app.config import get_settings
 from app.database import get_pool
-
 
 router = APIRouter(prefix="/workflows", tags=["automation_v5_5"])
 

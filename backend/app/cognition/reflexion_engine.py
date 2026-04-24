@@ -4,11 +4,10 @@ Max 3 cycles. Questions premortem obligatoires.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
 
 from app.cognition.reasoning_trace_models import ReflectionCycle, ReflectionTrace
-
 
 PREMORTEM_QUESTIONS = [
     "Qu'est-ce qui peut etre faux ?",

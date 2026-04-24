@@ -12,7 +12,6 @@ from uuid import UUID
 
 import asyncpg
 
-
 KILL_THRESHOLDS = {
     "timeout_5min": 300,       # seconds
     "tokens_100k": 100_000,

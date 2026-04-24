@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -48,7 +48,7 @@ class MetaAudit:
 
 
 async def audit(pool: asyncpg.Pool) -> MetaAudit:
-    since = datetime.now(timezone.utc) - timedelta(days=7)
+    since = datetime.now(UTC) - timedelta(days=7)
 
     # 1. Chain integrity
     report = await evidence_chain.verify_chain(pool)

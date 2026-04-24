@@ -5,11 +5,8 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import Any
 
 from app.cognition.reasoning_trace_models import ConstitutionalReport
-
 
 PRINCIPLES: dict[str, str] = {
     "P1": ("SECURITE : ne jamais compromettre utilisateurs/donnees sensibles. "

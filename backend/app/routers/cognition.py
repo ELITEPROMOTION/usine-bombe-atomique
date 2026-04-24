@@ -42,7 +42,6 @@ from fastapi import APIRouter, HTTPException
 
 from app.cognition import (
     adversarial_reasoning_tester,
-    bias_detector,
     cognitive_circuit_breaker,
     cognitive_dependency_graph,
     cognitive_health_monitor,
@@ -54,21 +53,18 @@ from app.cognition import (
     graph_of_thoughts,
     human_reasoning_override,
     mcts_reasoning,
-    meta_cognition,
+    react_engine,
     reasoning_benchmarks,
     reasoning_cache_semantic,
     reasoning_core,
     reasoning_reproducibility_test,
     recursive_refinement,
     reflexion_engine,
-    react_engine,
     self_discover,
     tree_of_thoughts,
-    uncertainty_quantifier,
 )
 from app.cognition.reasoning_core import ReasoningRequest
 from app.database import get_pool
-
 
 router = APIRouter()
 

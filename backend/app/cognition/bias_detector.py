@@ -6,10 +6,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
 
 from app.cognition.reasoning_trace_models import BiasReport
-
 
 BIAS_NAMES = [
     "confirmation", "anchoring", "availability",

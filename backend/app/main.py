@@ -9,7 +9,20 @@ from app.config import get_settings
 from app.database import close_pool, init_pool
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.middleware.tenant import TenantMiddleware
-from app.routers import ahmed_inbox, analytics, auth, autonomy, cognition, dehardcoding, health, provisioning, tasks, truth, websocket, workflows
+from app.routers import (
+    ahmed_inbox,
+    analytics,
+    auth,
+    autonomy,
+    cognition,
+    dehardcoding,
+    health,
+    provisioning,
+    tasks,
+    truth,
+    websocket,
+    workflows,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)

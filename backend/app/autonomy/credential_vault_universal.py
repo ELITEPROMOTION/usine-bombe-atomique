@@ -14,7 +14,7 @@ Schema stocke par service (KV v2 data field):
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.integrations.vault_client import VaultClient, VaultUnavailable
@@ -45,7 +45,7 @@ def lookup(service: str) -> dict[str, Any] | None:
     if created and ttl:
         try:
             dt = datetime.fromisoformat(created)
-            age_days = (datetime.now(timezone.utc) - dt).days
+            age_days = (datetime.now(UTC) - dt).days
             if age_days > ttl:
                 logger.info("credential %s expired (%dd > ttl %d)",
                             service, age_days, ttl)
@@ -62,7 +62,7 @@ def store(service: str, data: dict[str, Any], ttl_days: int = 365) -> bool:
         payload = {
             **data,
             "created_at": data.get("created_at")
-                           or datetime.now(timezone.utc).isoformat(),
+                           or datetime.now(UTC).isoformat(),
             "ttl_days": ttl_days,
         }
         vc.put(_path(service), payload)
@@ -76,7 +76,7 @@ def mark_used(service: str) -> None:
     existing = lookup(service)
     if not existing:
         return
-    existing["last_used_at"] = datetime.now(timezone.utc).isoformat()
+    existing["last_used_at"] = datetime.now(UTC).isoformat()
     store(service, existing, ttl_days=int(existing.get("ttl_days", 365)))
 
 

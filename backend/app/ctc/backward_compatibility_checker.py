@@ -6,11 +6,11 @@ Verdict pass si regression < 1%.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import asyncpg
-
 
 MAX_REGRESSION_RATE = 0.01
 

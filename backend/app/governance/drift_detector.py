@@ -17,7 +17,7 @@ import json
 import logging
 import statistics
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -77,7 +77,7 @@ async def detect_statistical(
     pool: asyncpg.Pool, window_days: int = 7, baseline_days: int = 30,
 ) -> list[DriftAlert]:
     """Compare la distribution des chosen_value sur window_days vs baseline_days."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with pool.acquire() as conn:
         cur_rows = await conn.fetch(
             """
@@ -136,7 +136,7 @@ async def detect_quality(
     pool: asyncpg.Pool, window_days: int = 7, baseline_days: int = 30,
 ) -> list[DriftAlert]:
     """Confidence moyenne en decisions vs historique."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with pool.acquire() as conn:
         cur = await conn.fetchval(
             "SELECT AVG(confidence_score) FROM decisions_audit "
@@ -174,7 +174,7 @@ async def detect_invariant(
     pool: asyncpg.Pool, window_days: int = 7,
 ) -> list[DriftAlert]:
     """Compte les decisions avec bounds_respected = false."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with pool.acquire() as conn:
         total = await conn.fetchval(
             "SELECT COUNT(*) FROM decisions_audit WHERE created_at >= $1",
@@ -214,7 +214,7 @@ async def detect_performance(
     pool: asyncpg.Pool, window_days: int = 7, baseline_days: int = 30,
 ) -> list[DriftAlert]:
     """Mediane duree_ms tasks (proxy performance)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with pool.acquire() as conn:
         cur_rows = await conn.fetch(
             """

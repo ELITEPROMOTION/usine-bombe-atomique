@@ -4,11 +4,10 @@ Compare semaine N vs semaine N-1. Alerte regression.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
-
 
 REGRESSION_THRESHOLD = 0.05   # 5% delta
 
@@ -16,7 +15,7 @@ REGRESSION_THRESHOLD = 0.05   # 5% delta
 async def weekly_scores(
     pool: asyncpg.Pool, family: str | None = None,
 ) -> dict[str, Any]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with pool.acquire() as conn:
         sql = (
             "SELECT AVG(score_0_100) AS avg_score, COUNT(*) AS n "

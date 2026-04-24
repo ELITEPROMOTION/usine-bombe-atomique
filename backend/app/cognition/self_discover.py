@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
 MODULES = [
     "break_down", "critical_thinking", "step_by_step",
     "creative_thinking", "systems_thinking", "risk_analysis",

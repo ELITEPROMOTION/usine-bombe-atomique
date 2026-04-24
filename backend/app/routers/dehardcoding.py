@@ -32,7 +32,6 @@ from app.governance import (
     rules_classifier,
 )
 
-
 router = APIRouter()
 
 

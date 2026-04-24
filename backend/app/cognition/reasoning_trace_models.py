@@ -4,11 +4,9 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
-
 
 ProblemType = Literal["simple", "moderate", "complex", "creative",
                        "sequential", "ambiguous"]

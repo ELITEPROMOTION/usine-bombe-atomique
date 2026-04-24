@@ -10,7 +10,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-
 VERSION_PATTERN = re.compile(r"\bv?(\d+(?:\.\d+)+)\b")
 
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import asyncpg
 
@@ -53,7 +53,7 @@ def evaluate_shadow(
     invariants_violated: int,
 ) -> tuple[CanaryMetrics, bool]:
     n = max(1, len(decisions_new))
-    divergent = sum(1 for a, b in zip(decisions_new, decisions_legacy) if a != b)
+    divergent = sum(1 for a, b in zip(decisions_new, decisions_legacy, strict=False) if a != b)
     div_rate = divergent / n
     q_delta = quality_new - quality_legacy
     c_delta = cost_new - cost_legacy

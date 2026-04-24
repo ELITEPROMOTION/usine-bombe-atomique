@@ -7,10 +7,8 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any
 
 from app.cognition.reasoning_trace_models import UncertaintyReport
-
 
 VAGUE_TERMS = [
     re.compile(r"\bprobablement\b", re.I),

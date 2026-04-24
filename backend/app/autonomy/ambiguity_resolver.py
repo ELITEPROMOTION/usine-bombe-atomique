@@ -126,7 +126,7 @@ async def _level1_doc_scan(
                     """, UUID(task_id), pattern,
                 )
                 if ev:
-                    return True, f"evidence_ledger hit"
+                    return True, "evidence_ledger hit"
     except Exception as exc:
         logger.debug("level1 scan failed: %s", exc)
     return False, None

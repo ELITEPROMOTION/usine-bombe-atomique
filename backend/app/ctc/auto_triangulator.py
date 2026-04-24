@@ -13,7 +13,7 @@ from typing import Any
 
 import asyncpg
 
-from app.ctc import assertion_normalizer, evidence_harvester, source_registry
+from app.ctc import evidence_harvester, source_registry
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,6 @@ from uuid import UUID
 
 import asyncpg
 
-
 MIN_JUSTIFICATION_LEN = 50
 
 

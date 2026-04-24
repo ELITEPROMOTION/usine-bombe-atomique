@@ -14,7 +14,7 @@ import json
 import logging
 import statistics
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import asyncpg
@@ -90,7 +90,7 @@ def _build_buckets(preds: list[tuple[float, float]]) -> list[dict[str, Any]]:
 
 
 async def compute(pool: asyncpg.Pool, window_days: int = 14) -> CalibrationReport:
-    since = datetime.now(timezone.utc) - timedelta(days=window_days)
+    since = datetime.now(UTC) - timedelta(days=window_days)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -125,7 +125,7 @@ def calibrate(raw: float, report: CalibrationReport) -> float:
     if not report.buckets:
         return raw
     for b in report.buckets:
-        lo, hi = [float(x) for x in b["range"].split("-")]
+        lo, hi = (float(x) for x in b["range"].split("-"))
         if lo <= raw < hi:
             # Remplace la confidence par l'outcome moyen observe du bucket
             return max(0.0, min(1.0, float(b["avg_outcome"])))

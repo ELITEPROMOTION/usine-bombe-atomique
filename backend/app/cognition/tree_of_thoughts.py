@@ -5,11 +5,11 @@ DFS / BFS / best_first strategies. Pruning sur value.
 from __future__ import annotations
 
 import heapq
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from app.cognition.reasoning_trace_models import TreeNode, TreeTrace
-
 
 EVAL_WEIGHTS = {"faisabilite": 0.3, "progres": 0.3,
                  "correction": 0.3, "novelty": 0.1}

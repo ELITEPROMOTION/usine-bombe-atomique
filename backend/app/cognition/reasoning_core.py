@@ -9,7 +9,7 @@ import hashlib
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
@@ -23,11 +23,7 @@ from app.cognition import (
     uncertainty_quantifier,
 )
 from app.cognition.reasoning_trace_models import (
-    BiasReport,
-    ConstitutionalReport,
-    MetaCognitiveReport,
     ReasoningTrace,
-    UncertaintyReport,
 )
 
 logger = logging.getLogger(__name__)
