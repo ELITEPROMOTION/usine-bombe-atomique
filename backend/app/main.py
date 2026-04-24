@@ -20,11 +20,14 @@ from app.routers import (
     features,
     health,
     provisioning,
+    resilience,
+    slo,
     tasks,
     truth,
     websocket,
     workflows,
 )
+from app.health.router import router as health_v2_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -79,4 +82,7 @@ app.include_router(cognition.router, prefix=f"{settings.API_PREFIX}", tags=["cog
 app.include_router(workflows.router, prefix=f"{settings.API_PREFIX}", tags=["automation_v5_5"])
 app.include_router(domains.router, prefix=f"{settings.API_PREFIX}", tags=["domains_v5_6"])
 app.include_router(features.router, prefix=f"{settings.API_PREFIX}", tags=["features_v5_6"])
+app.include_router(resilience.router, prefix=f"{settings.API_PREFIX}", tags=["resilience_v5_7"])
+app.include_router(slo.router, prefix=f"{settings.API_PREFIX}", tags=["slo_v5_7"])
+app.include_router(health_v2_router, prefix=f"{settings.API_PREFIX}", tags=["health_v5_7"])
 app.include_router(websocket.router, tags=["ws"])
