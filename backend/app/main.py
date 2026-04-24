@@ -16,6 +16,8 @@ from app.routers import (
     autonomy,
     cognition,
     dehardcoding,
+    domains,
+    features,
     health,
     provisioning,
     tasks,
@@ -34,6 +36,13 @@ async def lifespan(app: FastAPI):
     logger.info("Starting %s v%s", settings.APP_NAME, settings.APP_VERSION)
     await init_pool()
     logger.info("DB pool initialized")
+    # V5.6 : register 5 domains + load YAML rules
+    try:
+        from app.domains import register_all
+        register_all()
+        logger.info("V5.6 domains registered")
+    except Exception as exc:
+        logger.warning("V5.6 domains registration failed: %s", exc)
     yield
     await close_pool()
     logger.info("Shutdown complete")
@@ -68,4 +77,6 @@ app.include_router(dehardcoding.router, prefix=f"{settings.API_PREFIX}", tags=["
 app.include_router(truth.router, prefix=f"{settings.API_PREFIX}", tags=["ctc_v5_3"])
 app.include_router(cognition.router, prefix=f"{settings.API_PREFIX}", tags=["cognition_v5_4"])
 app.include_router(workflows.router, prefix=f"{settings.API_PREFIX}", tags=["automation_v5_5"])
+app.include_router(domains.router, prefix=f"{settings.API_PREFIX}", tags=["domains_v5_6"])
+app.include_router(features.router, prefix=f"{settings.API_PREFIX}", tags=["features_v5_6"])
 app.include_router(websocket.router, tags=["ws"])
