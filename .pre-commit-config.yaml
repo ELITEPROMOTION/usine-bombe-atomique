@@ -1,0 +1,69 @@
+# Pre-commit hooks UBA
+#
+# Installer :
+#   pip install pre-commit
+#   pre-commit install
+#   pre-commit install --hook-type pre-push   # pour le hook pytest
+#
+# Executer manuellement :
+#   pre-commit run --all-files
+
+repos:
+  # -------- Ruff (linter + formatter Python) ----------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/app/
+      - id: ruff-format
+        files: ^backend/app/
+
+  # -------- Mypy (typage strict sur app/) ----------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        name: mypy (lenient)
+        args:
+          - --ignore-missing-imports
+          - --install-types
+          - --non-interactive
+        files: ^backend/app/
+        additional_dependencies:
+          - pydantic
+          - fastapi
+          - types-redis
+          - types-PyYAML
+
+  # -------- Bandit (security linter, warning only) ----------
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.7.10"
+    hooks:
+      - id: bandit
+        args: [-ll, -q, --exit-zero]
+        files: ^backend/app/
+        exclude: ^backend/tests/
+
+  # -------- Trailing whitespace / EOF / large files ----------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  # -------- Pytest fast subset (pre-push hook only) ----------
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (fast tests - unit + schemas)
+        stages: [pre-push]
+        language: system
+        pass_filenames: false
+        entry: bash -c 'cd backend && docker compose -f ../docker-compose.yml exec -T backend pytest tests/test_schemas.py tests/test_agents_registry.py tests/test_automation_v5_5.py -q --no-header --tb=line --timeout=60 || exit 1'
