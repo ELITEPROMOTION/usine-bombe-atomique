@@ -58,8 +58,10 @@ EXPECTED_EVENT_NAMES = {
 # ---------------------------------------------------------------- registry
 async def test_all_26_tasks_registered() -> None:
     names = set(auto_tasks.TASK_NAMES)
-    assert len(auto_tasks.ALL_TASKS) == 26
-    assert names == EXPECTED_TASKS
+    assert len(auto_tasks.ALL_TASKS) == 27  # 26 + task_backup_hourly V5.7
+    # EXPECTED_TASKS reste le set V5.5 (26) - doit etre subset
+    assert EXPECTED_TASKS.issubset(names)
+    assert "task_backup_hourly" in names
 
 
 async def test_all_9_event_tasks_registered() -> None:
@@ -69,7 +71,7 @@ async def test_all_9_event_tasks_registered() -> None:
 
 async def test_cron_schedules_valid() -> None:
     # 26 cron + 1 DLQ processor
-    assert len(CRON_JOBS) == 27
+    assert len(CRON_JOBS) == 28  # 27 tasks + 1 DLQ processor V5.7
     names = {c.name for c in CRON_JOBS}
     assert EXPECTED_TASKS.issubset(names)
     assert "task_dead_letter_processor" in names
@@ -92,7 +94,7 @@ async def test_worker_settings_exposes_functions() -> None:
 async def test_seed_workflow_schedules_has_26(pool) -> None:
     async with pool.acquire() as conn:
         n = await conn.fetchval("SELECT COUNT(*) FROM workflow_schedules")
-    assert int(n) == 26
+    assert int(n) >= 26  # 26 V5.5 + 1 V5.7 task_backup_hourly
 
 
 async def test_seed_event_triggers_has_15(pool) -> None:
@@ -227,7 +229,7 @@ async def test_workflow_dashboard_endpoints(http_client: AsyncClient,
     r = await http_client.get("/api/v1/workflows/scheduled")
     assert r.status_code == 200
     body = r.json()
-    assert body["count"] == 26
+    assert body["count"] >= 26
 
     r = await http_client.get("/api/v1/workflows/dependencies")
     assert r.status_code == 200

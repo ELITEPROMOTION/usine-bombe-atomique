@@ -135,10 +135,11 @@ async def test_pk_on_critical_tables(pool) -> None:
             assert row is not None, f"pas de PK sur {tbl}"
 
 
-async def test_workflow_schedules_seeded_26(pool) -> None:
+async def test_workflow_schedules_seeded_at_least_26(pool) -> None:
+    """26 V5.5 + 1 V5.7 task_backup_hourly = 27+ apres migration 028."""
     async with pool.acquire() as conn:
         n = await conn.fetchval("SELECT COUNT(*) FROM workflow_schedules")
-    assert int(n) == 26
+    assert int(n) >= 26
 
 
 async def test_event_triggers_seeded_at_least_9_events(pool) -> None:

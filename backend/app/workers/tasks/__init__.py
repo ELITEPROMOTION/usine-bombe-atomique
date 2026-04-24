@@ -64,6 +64,7 @@ from .tier6_veille import (
 )
 from .tier7_backup import (
     task_backup_database,
+    task_backup_hourly,
 )
 
 ALL_TASKS: list[Any] = (
@@ -76,7 +77,7 @@ ALL_TASKS: list[Any] = (
     + tier7_backup.ALL_TASKS
 )
 
-assert len(ALL_TASKS) == 26, f"Expected 26 tasks, got {len(ALL_TASKS)}"
+assert len(ALL_TASKS) == 27, f"Expected 27 tasks (26 + hourly), got {len(ALL_TASKS)}"
 
 TASK_NAMES: list[str] = [t.__automation_task__ for t in ALL_TASKS]  # type: ignore[attr-defined]
 
@@ -116,4 +117,5 @@ __all__ = [
     "task_browser_contract_verify",
     # Tier 7
     "task_backup_database",
+    "task_backup_hourly",
 ]

@@ -216,8 +216,8 @@ async def test_backup_database(pool) -> None:
 
 def test_all_26_names_unique() -> None:
     names = T.TASK_NAMES
-    assert len(names) == 26
-    assert len(set(names)) == 26
+    assert len(names) == 27  # 26 V5.5 + 1 V5.7 hourly backup
+    assert len(set(names)) == 27
 
 
 def test_each_task_has_timeout_attribute() -> None:

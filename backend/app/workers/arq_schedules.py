@@ -23,6 +23,7 @@ from app.workers.tasks import (
     task_agent_performance_report,
     task_autonomy_chaos,
     task_backup_database,
+    task_backup_hourly,
     task_benchmarks_run,
     task_browser_contract_verify,
     task_cost_report_generation,
@@ -121,17 +122,19 @@ CRON_JOBS: list[Any] = [
     cron(task_browser_contract_verify, name="task_browser_contract_verify",
          hour={6}, minute=30, max_tries=3, keep_result=3600),
 
-    # ============ TIER 7 - Backup (2x/jour) ============
+    # ============ TIER 7 - Backup (2x/jour + horaire incremental) ============
     cron(task_backup_database, name="task_backup_database",
          hour={0, 12}, minute=30, max_tries=3, keep_result=3600),
+    cron(task_backup_hourly, name="task_backup_hourly",
+         minute=15, max_tries=2, keep_result=3600),
 
     # ============ DLQ processor (horaire) ============
     cron(task_dead_letter_processor, name="task_dead_letter_processor",
          minute=5, max_tries=2, keep_result=3600),
 ]
 
-assert len(CRON_JOBS) == 27, (
-    f"Expected 26 cron tasks + 1 DLQ processor, got {len(CRON_JOBS)}"
+assert len(CRON_JOBS) == 28, (
+    f"Expected 27 cron tasks + 1 DLQ processor, got {len(CRON_JOBS)}"
 )
 
 
