@@ -217,42 +217,37 @@ def _build_pipeline_inputs(
     }
 
 
-# --------------------------------------------------------------------------- run_task
+# --------------------------------------------------------------------------- run_task helpers
 
-async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
-    """Pipeline V3 : DAG -> validation -> confidence -> persistence + memory."""
-    start = time.perf_counter()
-    logger.info("run_task %s", task_id)
-    pool = get_pool()
-    task_uuid = UUID(task_id)
-
-    spec, priority = await _load_task(pool, task_uuid)
-    orchestration = await run_dag(task_id=task_id, spec=spec, priority=priority)
-    workspace = orchestration.workspace
-    manifest = workspace.manifest()
-
-    # --------------- V4.1 Level 0 structurel ---------------
+async def _run_level_zero(pool: Any, workspace: Workspace, manifest: list[dict[str, Any]],
+                            task_id: str) -> None:
+    """Execute level_zero structural validation + logue preuve si echec."""
     files_map: dict[str, str] = {
         str(m["path"]): workspace.read(str(m["path"])) for m in manifest
     }
     level_zero = validate_level_zero(files_map)
-    if not level_zero.passed:
-        logger.warning("level_zero FAILED : %d issues", len(level_zero.issues))
-        try:
-            await evidence_ledger.record(
-                pool, kind="test", actor="level_zero_validator",
-                payload={"passed": False, "issues": level_zero.issues[:10]},
-                task_id=task_id,
-            )
-        except Exception as exc:
-            logger.warning("level_zero evidence failed: %s", exc)
+    if level_zero.passed:
+        return
+    logger.warning("level_zero FAILED : %d issues", len(level_zero.issues))
+    try:
+        await evidence_ledger.record(
+            pool, kind="test", actor="level_zero_validator",
+            payload={"passed": False, "issues": level_zero.issues[:10]},
+            task_id=task_id,
+        )
+    except Exception as exc:
+        logger.warning("level_zero evidence failed: %s", exc)
 
-    # --------------- V4.1 Confidence report par artefact ---------------
+
+async def _run_validation_and_confidence(
+    pool: Any, workspace: Workspace, orchestration: OrchestrationResult,
+    manifest: list[dict[str, Any]],
+) -> tuple[PipelineResult, ConfidenceReport, Thresholds]:
+    """Execute pipeline validation + score confidence."""
     artifact_confidence = classify_manifest(workspace, manifest)
     if artifact_confidence["block"]:
         logger.warning("artifact_confidence BLOCK : %d contradictions",
                        artifact_confidence["assertions_contradictory"])
-
     thresholds = await load_thresholds(pool, scope="global")
     pipeline_result = await run_pipeline(
         _build_pipeline_inputs(workspace, orchestration, manifest, thresholds),
@@ -267,20 +262,15 @@ async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
     )
     logger.info("confidence composite=%.3f label=%s",
                 confidence.composite, confidence.label)
+    return pipeline_result, confidence, thresholds
 
-    await _persist_results(pool, task_uuid, orchestration,
-                            pipeline_result, confidence, workspace, manifest)
 
-    duration_ms = int((time.perf_counter() - start) * 1000)
-    total_cost = await total_cost_for_task(pool, task_id)
-
-    await _update_learning_memory(
-        pool, task_id, spec, orchestration, pipeline_result,
-        confidence, len(manifest), total_cost, duration_ms,
-    )
-    await _run_auto_optim(pool)
-
-    # --------------- V4.4 Decision Router + Promotion ---------------
+async def _run_decision_router_and_promotion(
+    pool: Any, task_id: str, pipeline_result: PipelineResult,
+    confidence: ConfidenceReport, orchestration: OrchestrationResult,
+    artifact_version: str,
+) -> tuple[Any, list[dict[str, Any]]]:
+    """Route decision + pipeline promotion ou rollback selon verdict."""
     router_input = decision_router.RouterInput(
         task_id=task_id,
         verdict=pipeline_result.verdict,
@@ -293,27 +283,79 @@ async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
         route = await decision_router.route_and_log(pool, router_input)
     except Exception as exc:
         logger.warning("decision_router failed: %s", exc)
-        route = None
+        return None, []
 
-    artifact_version = _artifact_version(manifest)
     promotion_trace: list[dict[str, Any]] = []
-    if route is not None:
-        if route.route == decision_router.Route.ROBUST_SUCCESS:
-            try:
-                outcomes = await promotion_engine.run_full_pipeline(
-                    pool, task_id, artifact_version,
-                )
-                promotion_trace = [o.to_dict() for o in outcomes]
-            except Exception as exc:
-                logger.warning("promotion_engine failed: %s", exc)
-        elif route.route in (decision_router.Route.CRITICAL_FAIL,):
-            try:
-                await promotion_engine.rollback(
-                    pool, task_id, artifact_version,
-                    reason=route.rationale or "critical_fail route",
-                )
-            except Exception as exc:
-                logger.warning("rollback failed: %s", exc)
+    if route.route == decision_router.Route.ROBUST_SUCCESS:
+        try:
+            outcomes = await promotion_engine.run_full_pipeline(
+                pool, task_id, artifact_version,
+            )
+            promotion_trace = [o.to_dict() for o in outcomes]
+        except Exception as exc:
+            logger.warning("promotion_engine failed: %s", exc)
+    elif route.route == decision_router.Route.CRITICAL_FAIL:
+        try:
+            await promotion_engine.rollback(
+                pool, task_id, artifact_version,
+                reason=route.rationale or "critical_fail route",
+            )
+        except Exception as exc:
+            logger.warning("rollback failed: %s", exc)
+    return route, promotion_trace
+
+
+# --------------------------------------------------------------------------- run_task
+
+async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
+    """Pipeline V3 : DAG -> validation -> confidence -> persistence + memory.
+
+    Etapes :
+        1. Load task + DAG execution
+        2. Level 0 structural validation
+        3. Validation pipeline + confidence scoring
+        4. Persist results (artifacts, logs, tasks status)
+        5. Update learning memory + auto-optim
+        6. Decision router + promotion/rollback
+    """
+    start = time.perf_counter()
+    logger.info("run_task %s", task_id)
+    pool = get_pool()
+    task_uuid = UUID(task_id)
+
+    # 1. Load + DAG
+    spec, priority = await _load_task(pool, task_uuid)
+    orchestration = await run_dag(task_id=task_id, spec=spec, priority=priority)
+    workspace = orchestration.workspace
+    manifest = workspace.manifest()
+
+    # 2. Level 0
+    await _run_level_zero(pool, workspace, manifest, task_id)
+
+    # 3. Validation + confidence
+    pipeline_result, confidence, thresholds = await _run_validation_and_confidence(
+        pool, workspace, orchestration, manifest,
+    )
+
+    # 4. Persist
+    await _persist_results(pool, task_uuid, orchestration,
+                            pipeline_result, confidence, workspace, manifest)
+
+    duration_ms = int((time.perf_counter() - start) * 1000)
+    total_cost = await total_cost_for_task(pool, task_id)
+
+    # 5. Learning memory + auto-optim
+    await _update_learning_memory(
+        pool, task_id, spec, orchestration, pipeline_result,
+        confidence, len(manifest), total_cost, duration_ms,
+    )
+    await _run_auto_optim(pool)
+
+    # 6. Decision router + promotion
+    artifact_version = _artifact_version(manifest)
+    route, promotion_trace = await _run_decision_router_and_promotion(
+        pool, task_id, pipeline_result, confidence, orchestration, artifact_version,
+    )
 
     return {
         "task_id": task_id,

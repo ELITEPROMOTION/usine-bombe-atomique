@@ -15,8 +15,9 @@ import os
 import socket
 import time
 import traceback
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, Awaitable, Callable
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -169,7 +170,7 @@ def workflow_task(
                 )
                 if not isinstance(result, dict):
                     result = {"value": result}
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 status = "timeout"
                 error = f"timeout after {timeout_s}s"
                 _jlog(logging.ERROR, "task.timeout",

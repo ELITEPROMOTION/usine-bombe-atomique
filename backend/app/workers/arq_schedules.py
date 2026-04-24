@@ -15,8 +15,8 @@ from arq.connections import RedisSettings
 from app.config import get_settings
 from app.workers._runtime import automation_shutdown, automation_startup
 from app.workers.event_workflows import (
-    task_dead_letter_processor,
     EVENT_TASKS,
+    task_dead_letter_processor,
 )
 from app.workers.tasks import (
     ALL_TASKS,

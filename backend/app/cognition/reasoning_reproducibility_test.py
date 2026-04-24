@@ -5,7 +5,8 @@ Replay aleatoire 50 traces : doivent produire resultats IDENTIQUES.
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import asyncpg
 
@@ -37,7 +38,7 @@ async def replay_traces(
             try:
                 original_ans = json.loads(original_ans)
             except json.JSONDecodeError:
-                logger.debug("json decode skipped") if "logger" in globals() else None
+                pass
         if (replayed.get("final_answer") == original_ans
             and abs(float(replayed.get("final_confidence", 0)
                           or 0) - float(r["final_confidence"] or 0)) < 0.01):

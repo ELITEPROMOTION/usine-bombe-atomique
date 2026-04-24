@@ -5,7 +5,6 @@ Empeche les collisions via un verrou advisory postgres.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -93,13 +92,30 @@ async def deep_cycle(pool: asyncpg.Pool) -> CycleResult:
     t0 = time.perf_counter()
     async def run():
         # Re-check tout (placeholder : on loge juste les totaux)
+        # Optim N+1 fix : 1 seule query UNION ALL pour 5 tables
+        _TABLES: tuple[str, ...] = (
+            "truth_sources", "truth_assertions",
+            "truth_assertion_links", "evidence_chain_events",
+            "phase_gates",
+        )
         async with pool.acquire() as conn:
-            totals = {}
-            for t in ("truth_sources", "truth_assertions",
-                       "truth_assertion_links", "evidence_chain_events",
-                       "phase_gates"):
-                n = await conn.fetchval(f"SELECT COUNT(*) FROM {t}")
-                totals[t] = int(n or 0)
+            existing = await conn.fetch(
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_name = ANY($1::text[])",
+                list(_TABLES),
+            )
+            existing_names = {r["table_name"] for r in existing}
+            totals: dict[str, int] = {t: 0 for t in _TABLES}
+            if existing_names:
+                # Whitelist garantie : _TABLES est une constante, pas d'input user
+                union_parts = [
+                    f"SELECT '{t}' AS tbl, COUNT(*) AS n FROM {t}"
+                    for t in _TABLES
+                    if t in existing_names
+                ]
+                rows = await conn.fetch(" UNION ALL ".join(union_parts))
+                for r in rows:
+                    totals[r["tbl"]] = int(r["n"])
         report = await evidence_chain.verify_chain(pool, limit=5000)
         totals["chain_integrity"] = report.status
         return totals

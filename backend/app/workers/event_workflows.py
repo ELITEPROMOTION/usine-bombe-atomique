@@ -21,7 +21,6 @@ from typing import Any
 from app.database import get_pool
 from app.workers._runtime import _jlog, workflow_task
 
-
 logger = logging.getLogger("uba.events")
 
 # ============================================================================
@@ -223,6 +222,7 @@ async def push_to_dlq_redis(
     """Stream l'echec dans Redis `uba:dlq:events` (append-only). Retourne l'id
     du message ou None si indisponible."""
     import redis.asyncio as redis_lib
+
     from app.config import get_settings
     s = get_settings()
     r = redis_lib.Redis(

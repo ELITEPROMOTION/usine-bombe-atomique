@@ -107,6 +107,8 @@ async def advance(
             fields_sql.append("activated_at = NOW()")
         if to_stage == "rollback":
             fields_sql.append("rolled_back_at = NOW()")
+        # fields_sql ne contient que des identifiants en dur (whitelist) + $N
+        # placeholders : pas d'input utilisateur interpole, safe vs B608.
         sql = f"UPDATE innovation_items SET {', '.join(fields_sql)} WHERE id = $1"
         await conn.execute(sql, *params)
     return True

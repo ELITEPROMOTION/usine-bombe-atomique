@@ -8,8 +8,7 @@ from __future__ import annotations
 import ast
 import logging
 import re
-import statistics
-from typing import Any, Callable
+from collections.abc import Callable
 
 from app.cognition.reasoning_trace_models import ChainTrace, ReasoningStep
 
@@ -69,8 +68,12 @@ def program_aided_cot(problem: str) -> ChainTrace:
         expr = m.group(1).strip()
         try:
             node = ast.parse(expr, mode="eval")
-            result = eval(compile(node, "<pa_cot>", "eval"),   # noqa: S307
-                          {"__builtins__": {}}, {})
+            # eval avec builtins vide = sandbox arithmetique purement numerique
+            # (regex filtre deja les chars a `[-+*/().\s0-9]`). noqa/nosec OK.
+            result = eval(  # noqa: S307 - sandboxed arithmetic expression
+                compile(node, "<pa_cot>", "eval"),
+                {"__builtins__": {}}, {},
+            )
             steps_text = [
                 f"Extracted expression: {expr}",
                 f"Evaluated: {expr} = {result}",

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import asyncpg
@@ -21,19 +21,36 @@ TABLES_TO_SNAPSHOT = [
 
 
 async def create_snapshot(
-    pool: asyncpg.Pool, storage_path: str = "/tmp/ctc_snapshots",
+    pool: asyncpg.Pool, storage_path: str | None = None,
 ) -> dict[str, Any]:
+    # Default path via tempfile.gettempdir() (portable, evite B108).
+    if storage_path is None:
+        import tempfile
+        storage_path = str(Path(tempfile.gettempdir()) / "ctc_snapshots")
     # Chain integrity check first
     report = await evidence_chain.verify_chain(pool, limit=10_000)
     async with pool.acquire() as conn:
-        # Collect rowcounts
-        counts: dict[str, int] = {}
-        for t in TABLES_TO_SNAPSHOT:
+        # Collect rowcounts - N+1 fix : 1 query UNION ALL pour N tables
+        counts: dict[str, int] = {t: -1 for t in TABLES_TO_SNAPSHOT}
+        existing = await conn.fetch(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_name = ANY($1::text[])",
+            list(TABLES_TO_SNAPSHOT),
+        )
+        existing_names = {r["table_name"] for r in existing}
+        if existing_names:
+            # _TABLES constante : pas d'input user -> nosec B608
+            union_parts = [
+                f"SELECT '{t}' AS tbl, COUNT(*) AS n FROM {t}"
+                for t in TABLES_TO_SNAPSHOT
+                if t in existing_names
+            ]
             try:
-                n = await conn.fetchval(f"SELECT COUNT(*) FROM {t}")
-                counts[t] = int(n or 0)
+                rows = await conn.fetch(" UNION ALL ".join(union_parts))
+                for r in rows:
+                    counts[r["tbl"]] = int(r["n"])
             except Exception:
-                counts[t] = -1
+                pass  # Tables dropped between checks, leave -1
         checksum = hashlib.sha256(
             json.dumps(counts, sort_keys=True).encode()).hexdigest()
         row = await conn.fetchrow(
