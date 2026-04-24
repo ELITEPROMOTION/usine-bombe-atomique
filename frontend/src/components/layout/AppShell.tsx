@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Sparkles, Workflow, FolderOpen, LogOut, Crown, Inbox,
-  Menu, X, Brain, ShieldCheck, Activity, Building2, Zap,
+  Menu, X, Brain, ShieldCheck, Activity, Building2, Zap, Layers,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/stores/authStore";
@@ -12,6 +12,7 @@ const nav = [
   { to: "/",             label: "Vue d'ensemble",   Icon: LayoutDashboard },
   { to: "/ceo",          label: "CEO",              Icon: Crown },
   { to: "/ahmed_inbox",  label: "Boite A/B/C",      Icon: Inbox },
+  { to: "/domains",      label: "Domaines (5)",     Icon: Layers },
   { to: "/fleet",        label: "Fleet",            Icon: Building2 },
   { to: "/automation",   label: "Automation",       Icon: Zap },
   { to: "/cognition",    label: "Cognition",        Icon: Brain },

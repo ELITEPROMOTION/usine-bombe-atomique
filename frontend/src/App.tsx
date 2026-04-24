@@ -12,6 +12,7 @@ import { FleetPage } from "@/pages/FleetPage";
 import { ObservabilityPage } from "@/pages/ObservabilityPage";
 import { CognitionPage } from "@/pages/CognitionPage";
 import { TruthPage } from "@/pages/TruthPage";
+import { DomainsPage } from "@/pages/DomainsPage";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthGuard } from "@/components/layout/AuthGuard";
 
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="observability" element={<ObservabilityPage />} />
             <Route path="cognition" element={<CognitionPage />} />
             <Route path="truth" element={<TruthPage />} />
+            <Route path="domains" element={<DomainsPage />} />
             <Route path="new" element={<NewProjectPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="tasks/:id" element={<ProgressPage />} />
