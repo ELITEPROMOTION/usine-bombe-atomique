@@ -3,6 +3,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NewProjectPage } from "@/pages/NewProjectPage";
 import { NewProjectFromCDCPage } from "@/pages/NewProjectFromCDCPage";
+import { OSINTDashboardPage } from "@/pages/OSINTDashboardPage";
 import { ProgressPage } from "@/pages/ProgressPage";
 import { ResultsPage } from "@/pages/ResultsPage";
 import { ProjectsPage } from "@/pages/ProjectsPage";
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="domains" element={<DomainsPage />} />
             <Route path="new" element={<NewProjectPage />} />
             <Route path="ceo/new-project" element={<NewProjectFromCDCPage />} />
+            <Route path="osint" element={<OSINTDashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="tasks/:id" element={<ProgressPage />} />
             <Route path="tasks/:id/results" element={<ResultsPage />} />

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Sparkles, Workflow, FolderOpen, LogOut, Crown, Inbox,
-  Menu, X, Brain, ShieldCheck, Activity, Building2, Zap, Layers, Rocket,
+  Menu, X, Brain, ShieldCheck, Activity, Building2, Zap, Layers, Rocket, Shield,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/stores/authStore";
@@ -19,6 +19,7 @@ const nav = [
   { to: "/cognition",    label: "Cognition",        Icon: Brain },
   { to: "/truth",        label: "Truth Engine",     Icon: ShieldCheck },
   { to: "/observability",label: "Observabilite",    Icon: Activity },
+  { to: "/osint",        label: "OSINT",            Icon: Shield },
   { to: "/new",          label: "Nouveau projet",   Icon: Sparkles },
   { to: "/projects",     label: "Historique",       Icon: FolderOpen },
 ];
