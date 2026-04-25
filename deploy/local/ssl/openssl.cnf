@@ -1,0 +1,25 @@
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions    = v3_req
+prompt             = no
+
+[req_distinguished_name]
+C  = DZ
+ST = Algiers
+L  = Algiers
+O  = Dendani
+OU = UBA Local-Prod
+CN = uba.localhost
+
+[v3_req]
+keyUsage         = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName   = @alt_names
+
+[alt_names]
+DNS.1 = uba.localhost
+DNS.2 = api.uba.localhost
+DNS.3 = *.uba.localhost
+DNS.4 = localhost
+IP.1  = 127.0.0.1
+IP.2  = ::1
