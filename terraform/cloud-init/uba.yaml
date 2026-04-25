@@ -1,0 +1,51 @@
+#cloud-config
+# UBA bootstrap — run on first boot of fresh Hetzner VPS.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - htop
+  - ufw
+  - fail2ban
+  - ca-certificates
+  - gnupg
+  - lsb-release
+
+write_files:
+  - path: /etc/sysctl.d/99-uba.conf
+    content: |
+      # UBA tuning
+      net.core.somaxconn = 4096
+      net.ipv4.tcp_max_syn_backlog = 4096
+      vm.overcommit_memory = 1
+      fs.file-max = 200000
+
+runcmd:
+  # Firewall
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+  # Docker official repo
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+  - sysctl --system
+  # SSH hardening
+  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+  - systemctl reload ssh
+  # Project dir
+  - mkdir -p /srv/uba
+  - chown -R 1000:1000 /srv/uba
+
+final_message: "UBA cloud-init complete in $UPTIME seconds. SSH ready, Docker running, /srv/uba prepared."

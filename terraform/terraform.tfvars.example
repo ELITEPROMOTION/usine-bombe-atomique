@@ -1,0 +1,37 @@
+# Copy to terraform.tfvars and fill in real values.
+# DO NOT COMMIT terraform.tfvars (already in .gitignore).
+
+environment = "production"
+
+# ---------------------------------------------------------------------------
+# Hetzner Cloud
+# https://console.hetzner.cloud/projects -> Security -> API tokens
+# ---------------------------------------------------------------------------
+hcloud_token       = "REPLACE_ME"
+vps_name           = "uba-prod"
+vps_location       = "nbg1"        # nbg1 (Nuremberg), fsn1 (Falkenstein), hel1, ash, hil
+vps_server_type    = "cpx31"       # 4 vCPU AMD / 8GB RAM / 160GB
+vps_image          = "ubuntu-24.04"
+vps_ssh_keys       = ["barache-key", "ops-key"]
+vps_network_zone   = "eu-central"
+
+# ---------------------------------------------------------------------------
+# Cloudflare
+# https://dash.cloudflare.com/profile/api-tokens (Zone:DNS:Edit on the zone)
+# ---------------------------------------------------------------------------
+cloudflare_api_token = "REPLACE_ME"
+cloudflare_zone_id   = "REPLACE_ME"
+domain               = "uba.dendani.dz"
+
+# ---------------------------------------------------------------------------
+# Scaleway (object storage / backups)
+# https://console.scaleway.com/iam/api-keys
+# ---------------------------------------------------------------------------
+scaleway_access_key   = "REPLACE_ME"
+scaleway_secret_key   = "REPLACE_ME"
+scaleway_project_id   = "REPLACE_ME"
+scaleway_region       = "fr-par"
+scaleway_zone         = "fr-par-1"
+
+backup_bucket_name    = "uba-backups"
+backup_retention_days = 90
