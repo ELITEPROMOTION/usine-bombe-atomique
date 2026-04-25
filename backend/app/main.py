@@ -20,6 +20,7 @@ from app.routers import (
     features,
     health,
     intelligence,
+    observability,
     provisioning,
     resilience,
     slo,
@@ -29,6 +30,7 @@ from app.routers import (
     workflows,
 )
 from app.health.router import router as health_v2_router
+from app.observability import otel_setup
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -47,6 +49,12 @@ async def lifespan(app: FastAPI):
         logger.info("V5.6 domains registered")
     except Exception as exc:
         logger.warning("V5.6 domains registration failed: %s", exc)
+    # V5.9 : OpenTelemetry (best-effort, no-op if SDK absent)
+    try:
+        otel_status = otel_setup.init_otel(app=app)
+        logger.info("V5.9 OTel: %s", otel_status)
+    except Exception as exc:
+        logger.warning("V5.9 OTel init failed: %s", exc)
     yield
     await close_pool()
     logger.info("Shutdown complete")
@@ -87,4 +95,5 @@ app.include_router(resilience.router, prefix=f"{settings.API_PREFIX}", tags=["re
 app.include_router(slo.router, prefix=f"{settings.API_PREFIX}", tags=["slo_v5_7"])
 app.include_router(health_v2_router, prefix=f"{settings.API_PREFIX}", tags=["health_v5_7"])
 app.include_router(intelligence.router, prefix=f"{settings.API_PREFIX}", tags=["intelligence_v5_8"])
+app.include_router(observability.router, prefix=f"{settings.API_PREFIX}", tags=["observability_v5_9"])
 app.include_router(websocket.router, tags=["ws"])
