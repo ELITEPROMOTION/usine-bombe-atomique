@@ -2,13 +2,14 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Sparkles, Workflow, FolderOpen, LogOut, Crown, Inbox,
-  Menu, X, Brain, ShieldCheck, Activity, Building2, Zap, Layers,
+  Menu, X, Brain, ShieldCheck, Activity, Building2, Zap, Layers, Rocket,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/stores/authStore";
 import clsx from "clsx";
 
 const nav = [
+  { to: "/ceo/new-project", label: "Nouveau projet",   Icon: Rocket },
   { to: "/",             label: "Vue d'ensemble",   Icon: LayoutDashboard },
   { to: "/ceo",          label: "CEO",              Icon: Crown },
   { to: "/ahmed_inbox",  label: "Boite A/B/C",      Icon: Inbox },

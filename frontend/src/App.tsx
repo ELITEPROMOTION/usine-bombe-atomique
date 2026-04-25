@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NewProjectPage } from "@/pages/NewProjectPage";
+import { NewProjectFromCDCPage } from "@/pages/NewProjectFromCDCPage";
 import { ProgressPage } from "@/pages/ProgressPage";
 import { ResultsPage } from "@/pages/ResultsPage";
 import { ProjectsPage } from "@/pages/ProjectsPage";
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="truth" element={<TruthPage />} />
             <Route path="domains" element={<DomainsPage />} />
             <Route path="new" element={<NewProjectPage />} />
+            <Route path="ceo/new-project" element={<NewProjectFromCDCPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="tasks/:id" element={<ProgressPage />} />
             <Route path="tasks/:id/results" element={<ResultsPage />} />
