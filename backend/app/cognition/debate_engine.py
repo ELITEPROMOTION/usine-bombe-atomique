@@ -57,16 +57,23 @@ def debate(
     judge: Callable[[list[DebateRound]], tuple[str, str]] | None = None,
 ) -> DebateTrace:
     cfg = cfg or DebateConfig(role_a="Optimist", role_b="Pessimist")
+
+    def _speaker_a(i: int, prev: str | None) -> tuple[str, str | None]:
+        return _default_speaker(cfg.role_a, i, prev)
+
+    def _speaker_b(i: int, prev: str | None) -> tuple[str, str | None]:
+        return _default_speaker(cfg.role_b, i, prev)
+
     if speaker_a is None:
-        speaker_a = lambda i, prev: _default_speaker(cfg.role_a, i, prev)
+        speaker_a = _speaker_a
     if speaker_b is None:
-        speaker_b = lambda i, prev: _default_speaker(cfg.role_b, i, prev)
+        speaker_b = _speaker_b
     if judge is None:
         judge = _default_judge
 
     rounds: list[DebateRound] = []
     devils = False
-    prev_a, prev_b = None, None
+    prev_b: str | None = None
     for i in range(cfg.max_rounds):
         arg_a, ctr_a = speaker_a(i, prev_b)
         rounds.append(DebateRound(
@@ -76,7 +83,7 @@ def debate(
         rounds.append(DebateRound(
             round_index=i, role=cfg.role_b,
             argument=arg_b, counter=ctr_b))
-        prev_a, prev_b = arg_a, arg_b
+        prev_b = arg_b
         # Devil's advocate si convergence precoce
         if i == EARLY_CONVERGENCE_ROUND and _early_convergence(rounds):
             devils = True

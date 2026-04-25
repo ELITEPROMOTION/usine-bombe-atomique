@@ -45,7 +45,7 @@ class SevenLayerReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "verdict": self.verdict,
-            "layers": [l.to_dict() for l in self.layers],
+            "layers": [layer.to_dict() for layer in self.layers],
             "total_duration_ms": self.total_duration_ms,
             "first_fail": self.first_fail,
         }

@@ -266,7 +266,7 @@ class RB013_CascadeFailure(Runbook):
 
     async def detect(self) -> bool:
         try:
-            from app.health.checks import CHECKS, CheckStatus
+            from app.health.checks import CheckStatus
             from app.health import HealthCheckRegistry
             results = await HealthCheckRegistry.instance().run_all()
             unhealthy_critical = sum(

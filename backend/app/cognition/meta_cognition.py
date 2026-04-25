@@ -125,7 +125,6 @@ def detect_loop(trajectory: list[str], window: int = 6) -> bool:
     """Detecte une boucle (sequence repetee dans la trajectoire)."""
     if len(trajectory) < window * 2:
         return False
-    half = len(trajectory) // 2
     recent = tuple(trajectory[-window:])
     prior = tuple(trajectory[-2 * window:-window])
     return recent == prior

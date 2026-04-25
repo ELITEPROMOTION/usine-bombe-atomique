@@ -72,7 +72,6 @@ class ClassifiedConstant:
 def _match_kw(name: str, keywords: list[str]) -> str | None:
     """Cherche une correspondance par token (separateur '_') ou prefix."""
     tokens = [t.lower() for t in re.split(r"[_\s]+", name) if t]
-    low = name.lower()
     for kw in keywords:
         kl = kw.rstrip("_").lower()
         if kl in tokens:

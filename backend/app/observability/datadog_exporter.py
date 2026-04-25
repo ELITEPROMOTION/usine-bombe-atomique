@@ -20,7 +20,6 @@ Pas de dependance `datadog` lib. Format metrics natif StatsD / v1 series API.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os

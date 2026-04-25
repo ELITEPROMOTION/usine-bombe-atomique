@@ -93,13 +93,13 @@ async def validate(
                 """,
                 UUID(gate_id), (report.first_fail or "unknown")[:40],
                 reasons_summary,
-                json.dumps([l.name for l in report.layers if not l.passed]),
+                json.dumps([layer.name for layer in report.layers if not layer.passed]),
             )
 
     return GateDecision(
         gate_id=gate_id, name=name, status=status,
         validation_verdict=report.verdict,
-        reasons=[l.name for l in report.layers if not l.passed],
+        reasons=[layer.name for layer in report.layers if not layer.passed],
         evidence_chain_ref=chain_event.event_id,
     )
 
