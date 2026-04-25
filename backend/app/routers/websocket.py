@@ -88,6 +88,12 @@ def _fingerprint(snapshot: dict) -> str:
     return hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest()
 
 
+@router.websocket("/ws/projects/{project_id}")
+async def project_stream(websocket: WebSocket, project_id: str) -> None:
+    """V7 : alias semantique pour /ws/tasks/{id} (le project_id est l'UUID de la task)."""
+    await task_stream(websocket, project_id)
+
+
 @router.websocket("/ws/tasks/{task_id}")
 async def task_stream(websocket: WebSocket, task_id: str) -> None:
     await websocket.accept()

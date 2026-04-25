@@ -32,10 +32,14 @@ class DockerAgent(BaseAgent):
         checks: dict[str, Any] = {}
 
         dockerfile = _read_if_exists(workspace, "Dockerfile")
+        created: list[str] = []
+        if not dockerfile:
+            workspace.write("Dockerfile", _dockerfile_template())
+            created.append("Dockerfile")
+            dockerfile = _read_if_exists(workspace, "Dockerfile")
         if dockerfile:
             checks.update(_inspect_dockerfile(dockerfile))
 
-        created: list[str] = []
         if "docker-compose.yml" not in paths:
             workspace.write("docker-compose.yml", _compose_template())
             created.append("docker-compose.yml")
@@ -156,4 +160,36 @@ __pycache__
 tests/.pytest_report.json
 node_modules
 .DS_Store
+"""
+
+
+def _dockerfile_template() -> str:
+    return """# Multi-stage Dockerfile genere par UBA DockerAgent V7
+FROM python:3.12-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \\
+    PYTHONUNBUFFERED=1 \\
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \\
+    curl ca-certificates \\
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY . .
+
+RUN useradd --create-home --shell /bin/bash --uid 1001 appuser \\
+    && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 """

@@ -30,7 +30,7 @@ async def _enqueue_task(task_id: UUID) -> None:
         database=settings.REDIS_DB,
     ))
     try:
-        await redis.enqueue_job("run_task", str(task_id))
+        await redis.enqueue_job("run_task", str(task_id), _queue_name="uba:run_task")
     finally:
         await redis.aclose()
 

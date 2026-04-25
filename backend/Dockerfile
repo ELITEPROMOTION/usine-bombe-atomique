@@ -26,6 +26,7 @@ COPY app ./app
 COPY migrations ./migrations
 COPY scripts ./scripts
 COPY tests ./tests
+COPY cdc_examples ./cdc_examples
 
 EXPOSE 8000
 

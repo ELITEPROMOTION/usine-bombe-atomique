@@ -21,6 +21,7 @@ from app.routers import (
     health,
     intelligence,
     observability,
+    projects,
     provisioning,
     resilience,
     slo,
@@ -96,4 +97,5 @@ app.include_router(slo.router, prefix=f"{settings.API_PREFIX}", tags=["slo_v5_7"
 app.include_router(health_v2_router, prefix=f"{settings.API_PREFIX}", tags=["health_v5_7"])
 app.include_router(intelligence.router, prefix=f"{settings.API_PREFIX}", tags=["intelligence_v5_8"])
 app.include_router(observability.router, prefix=f"{settings.API_PREFIX}", tags=["observability_v5_9"])
+app.include_router(projects.router, prefix=f"{settings.API_PREFIX}/projects", tags=["projects_v7"])
 app.include_router(websocket.router, tags=["ws"])

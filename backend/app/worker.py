@@ -424,9 +424,13 @@ async def shutdown(_ctx: dict[str, Any]) -> None:
     await close_pool()
 
 
+RUN_TASK_QUEUE = "uba:run_task"
+
+
 class WorkerSettings:
     """Configuration Arq : fonctions exposees + lifecycle + connexion Redis."""
     functions: ClassVar[list[Any]] = [run_task]
+    queue_name = RUN_TASK_QUEUE
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings(
