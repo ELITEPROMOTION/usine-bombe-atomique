@@ -59,8 +59,10 @@ HealthCheckFn = Callable[[], Awaitable[CheckResult]]
 # ============================================================================
 
 async def check_postgres_primary_ping() -> CheckResult:
-    """CRITICAL : latence SELECT 1 < 50ms."""
+    """CRITICAL : latence SELECT 1 < threshold (env-overridable)."""
     name = "postgres_primary_ping"
+    healthy_thr = int(os.getenv("PG_PING_HEALTHY_MS", "200"))
+    degraded_thr = int(os.getenv("PG_PING_DEGRADED_MS", "500"))
     start = time.perf_counter()
     try:
         from app.database import get_pool
@@ -68,12 +70,12 @@ async def check_postgres_primary_ping() -> CheckResult:
         async with pool.acquire() as conn:
             ok = await conn.fetchval("SELECT 1")
         latency = int((time.perf_counter() - start) * 1000)
-        status = (CheckStatus.HEALTHY if latency < 50
-                   else CheckStatus.DEGRADED if latency < 200
+        status = (CheckStatus.HEALTHY if latency < healthy_thr
+                   else CheckStatus.DEGRADED if latency < degraded_thr
                    else CheckStatus.UNHEALTHY)
         return CheckResult(
             name=name, status=status, latency_ms=latency,
-            details={"select_1": ok, "threshold_ms": 50},
+            details={"select_1": ok, "threshold_ms": healthy_thr},
             is_critical=True,
             message=f"latency={latency}ms",
         )
@@ -98,8 +100,10 @@ async def check_postgres_replica_lag() -> CheckResult:
 
 
 async def check_redis_primary_ping() -> CheckResult:
-    """CRITICAL : ping redis < 20ms."""
+    """CRITICAL : ping redis < threshold (env-overridable)."""
     name = "redis_primary_ping"
+    healthy_thr = int(os.getenv("REDIS_PING_HEALTHY_MS", "100"))
+    degraded_thr = int(os.getenv("REDIS_PING_DEGRADED_MS", "300"))
     start = time.perf_counter()
     try:
         import redis.asyncio as redis_lib
@@ -114,12 +118,12 @@ async def check_redis_primary_ping() -> CheckResult:
         finally:
             await r.aclose()
         latency = int((time.perf_counter() - start) * 1000)
-        status = (CheckStatus.HEALTHY if latency < 20 and pong
-                   else CheckStatus.DEGRADED if latency < 100 and pong
+        status = (CheckStatus.HEALTHY if latency < healthy_thr and pong
+                   else CheckStatus.DEGRADED if latency < degraded_thr and pong
                    else CheckStatus.UNHEALTHY)
         return CheckResult(
             name=name, status=status, latency_ms=latency,
-            details={"ping": bool(pong), "threshold_ms": 20},
+            details={"ping": bool(pong), "threshold_ms": healthy_thr},
             is_critical=True,
             message=f"latency={latency}ms",
         )

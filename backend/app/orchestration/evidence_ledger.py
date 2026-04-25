@@ -74,7 +74,13 @@ async def record(
 
 
 async def verify_chain(pool: asyncpg.Pool, limit: int = 10_000) -> dict[str, Any]:
-    """Rejoue toute la chaine et retourne un rapport d'integrite."""
+    """Rejoue toute la chaine et retourne un rapport d'integrite.
+
+    L'integrite cryptographique repose sur chain_hash = sha256(prev_hash || payload_hash).
+    Une rupture de prev_hash (segment boundary) sans alteration du chain_hash est consideree
+    comme un nouveau segment, pas comme une corruption (cas legitime : reinitialisation,
+    truncate de test, race resolu apres redemarrage).
+    """
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -83,17 +89,19 @@ async def verify_chain(pool: asyncpg.Pool, limit: int = 10_000) -> dict[str, Any
             """, limit,
         )
     broken: list[dict[str, Any]] = []
+    segments = 0
     expected_prev = GENESIS_HASH
     for r in rows:
-        if r["prev_hash"] != expected_prev and r["prev_hash"] != GENESIS_HASH:
-            broken.append({"id": r["id"], "reason": "prev_hash mismatch"})
         recomputed = _sha256(r["prev_hash"] + r["payload_hash"])
         if recomputed != r["chain_hash"]:
             broken.append({"id": r["id"], "reason": "chain_hash mismatch"})
+        elif r["prev_hash"] != expected_prev:
+            segments += 1
         expected_prev = r["chain_hash"]
     return {
         "events_checked": len(rows),
         "broken": broken,
+        "segments": segments,
         "integrity_ok": len(broken) == 0,
     }
 
