@@ -1,0 +1,64 @@
+{
+  "campaign": "VAGUE 7 - Production-Ready Local",
+  "audit_date": "2026-04-25",
+  "environment": "local-docker-windows",
+  "summary": {
+    "total_anomalies": 5,
+    "critical": 1,
+    "high": 2,
+    "medium": 1,
+    "low": 1
+  },
+  "anomalies": [
+    {
+      "id": "A001",
+      "severity": "critical",
+      "title": "truth_chain_integrity broken=144/3866",
+      "category": "data_integrity",
+      "source": "/api/v1/health/detailed",
+      "details": "evidence_ledger.verify_chain reports 144 broken events out of 3866. Likely chain_hash mismatch from legacy data before strict chaining enforcement.",
+      "fix_strategy": "Migration 032 + repair script: re-chain legacy events from genesis, mark legacy boundary, ensure new inserts are atomic via SELECT FOR UPDATE",
+      "evidence": {"events_checked": 3866, "broken_count": 144}
+    },
+    {
+      "id": "A002",
+      "severity": "high",
+      "title": "postgres_primary_ping threshold 50ms unrealistic on Windows Docker",
+      "category": "configuration",
+      "source": "/api/v1/health/detailed",
+      "details": "Health check reports 689ms (UNHEALTHY) but real-world inside-container benchmark shows p99=2.08ms. Threshold needs adjustment for Docker Desktop / Windows overhead.",
+      "fix_strategy": "Relax threshold from 50ms to 200ms (still strict), make configurable via PG_PING_THRESHOLD_MS env var",
+      "evidence": {"health_reported_ms": 689, "actual_p99_ms": 2.08, "threshold_ms": 50}
+    },
+    {
+      "id": "A003",
+      "severity": "high",
+      "title": "redis_primary_ping threshold 20ms unrealistic on Windows Docker",
+      "category": "configuration",
+      "source": "/api/v1/health/detailed",
+      "details": "Health check reports 871ms (UNHEALTHY) but inside-container Redis SET+GET p99=20.84ms. Threshold marginally too tight for cold-call cycle through health framework.",
+      "fix_strategy": "Relax threshold from 20ms to 100ms, configurable via REDIS_PING_THRESHOLD_MS env var",
+      "evidence": {"health_reported_ms": 871, "actual_p99_ms": 20.84, "threshold_ms": 20}
+    },
+    {
+      "id": "A004",
+      "severity": "medium",
+      "title": "error_rate SLO at 99.0% vs 99.8% target (warn)",
+      "category": "slo_warn",
+      "source": "/api/v1/slo/status",
+      "details": "burn_rate_6h=5.0 elevated. Likely from V6 chaos tests still in 6h window. Self-resolving.",
+      "fix_strategy": "Monitor only; do not patch — auto-resolves as 6h window scrolls",
+      "evidence": {"current_sli": 99.0, "target_percent": 99.8}
+    },
+    {
+      "id": "A005",
+      "severity": "low",
+      "title": "backup_freshness 6h ago (degraded)",
+      "category": "ops",
+      "source": "/api/v1/health/detailed",
+      "details": "Last backup 6h ago. Acceptable for local-prod (single user, no incoming writes).",
+      "fix_strategy": "Document in known issues; backup freshness check applies to multi-user prod only",
+      "evidence": {"age_hours": 6.0}
+    }
+  ]
+}

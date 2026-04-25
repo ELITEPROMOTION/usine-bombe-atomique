@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-04-23T21:07:30Z",
+  "generated_at": "2026-04-25T16:02:51Z",
   "overall_status": "FAIL",
-  "duration_s": 929.58,
+  "duration_s": 1086.71,
   "phases": [
     {
       "name": "Phase 1 · Verification par module",
       "status": "FAIL",
       "score": 0.7857,
-      "duration_s": 616.1,
+      "duration_s": 632.92,
       "checks": [
         {
           "name": "P1.1 AST parse (backend)",
           "status": "PASS",
-          "summary": "196 fichiers analyses, 0 erreur(s)",
+          "summary": "242 fichiers analyses, 0 erreur(s)",
           "details": {
-            "file_count": 196,
+            "file_count": 242,
             "errors": []
           },
-          "duration_s": 4.225
+          "duration_s": 12.89
         },
         {
           "name": "P1.2 Pytest + coverage (gate 50%)",
@@ -29,220 +29,215 @@
             "tail_stdout": "",
             "tail_stderr": "timeout 600s"
           },
-          "duration_s": 600.106
+          "duration_s": 600.235
         },
         {
           "name": "P1.3 Ruff + Bandit",
           "status": "WARN",
-          "summary": "ruff=128, bandit(high)=0, bandit(total)=25",
+          "summary": "ruff=79, bandit(high)=0, bandit(total)=24",
           "details": {
             "ruff_sample": [
               {
                 "cell": null,
-                "code": "F541",
+                "code": "SIM102",
                 "end_location": {
-                  "column": 56,
-                  "row": 129
+                  "column": 49,
+                  "row": 105
                 },
-                "filename": "/repo/backend/app/autonomy/ambiguity_resolver.py",
-                "fix": {
-                  "applicability": "safe",
-                  "edits": [
-                    {
-                      "content": "\"evidence_ledger hit\"",
-                      "end_location": {
-                        "column": 56,
-                        "row": 129
-                      },
-                      "location": {
-                        "column": 34,
-                        "row": 129
-                      }
-                    }
-                  ],
-                  "message": "Remove extraneous `f` prefix"
-                },
+                "filename": "/repo/backend/app/autonomy/permission_lease_manager.py",
+                "fix": null,
                 "location": {
-                  "column": 34,
-                  "row": 129
+                  "column": 9,
+                  "row": 104
                 },
-                "message": "f-string without any placeholders",
-                "noqa_row": 129,
-                "url": "https://docs.astral.sh/ruff/rules/f-string-missing-placeholders"
+                "message": "Use a single `if` statement instead of nested `if` statements",
+                "noqa_row": 104,
+                "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
               },
               {
                 "cell": null,
-                "code": "UP017",
-                "end_location": {
-                  "column": 38,
-                  "row": 210
-                },
-                "filename": "/repo/backend/app/autonomy/autonomy_auditor.py",
-                "fix": {
-                  "applicability": "safe",
-                  "edits": [
-                    {
-                      "content": "from datetime import datetime, timedelta, timezone, UTC",
-                      "end_location": {
-                        "column": 51,
-                        "row": 25
-                      },
-                      "location": {
-                        "column": 1,
-                        "row": 25
-                      }
-                    },
-                    {
-                      "content": "UTC",
-                      "end_location": {
-                        "column": 38,
-                        "row": 210
-                      },
-                      "location": {
-                        "column": 26,
-                        "row": 210
-                      }
-                    }
-                  ],
-                  "message": "Convert to `datetime.UTC` alias"
-                },
-                "location": {
-                  "column": 26,
-                  "row": 210
-                },
-                "message": "Use `datetime.UTC` alias",
-                "noqa_row": 210,
-                "url": "https://docs.astral.sh/ruff/rules/datetime-timezone-utc"
-              },
-              {
-                "cell": null,
-                "code": "UP017",
-                "end_location": {
-                  "column": 38,
-                  "row": 93
-                },
-                "filename": "/repo/backend/app/autonomy/calibration_engine.py",
-                "fix": {
-                  "applicability": "safe",
-                  "edits": [
-                    {
-                      "content": "from datetime import datetime, timedelta, timezone, UTC",
-                      "end_location": {
-                        "column": 51,
-                        "row": 17
-                      },
-                      "location": {
-                        "column": 1,
-                        "row": 17
-                      }
-                    },
-                    {
-                      "content": "UTC",
-                      "end_location": {
-                        "column": 38,
-                        "row": 93
-                      },
-                      "location": {
-                        "column": 26,
-                        "row": 93
-                      }
-                    }
-                  ],
-                  "message": "Convert to `datetime.UTC` alias"
-                },
-                "location": {
-                  "column": 26,
-                  "row": 93
-                },
-                "message": "Use `datetime.UTC` alias",
-                "noqa_row": 93,
-                "url": "https://docs.astral.sh/ruff/rules/datetime-timezone-utc"
-              },
-              {
-                "cell": null,
-                "code": "UP027",
+                "code": "SIM102",
                 "end_location": {
                   "column": 59,
-                  "row": 128
+                  "row": 105
                 },
-                "filename": "/repo/backend/app/autonomy/calibration_engine.py",
+                "filename": "/repo/backend/app/cognition/bias_detector.py",
                 "fix": {
-                  "applicability": "safe",
+                  "applicability": "unsafe",
                   "edits": [
                     {
-                      "content": "(float(x) for x in b[\"range\"].split(\"-\"))",
+                      "content": "    if votes_convergence_ratio > 0.9 and not any(b.name == \"groupthink\" for b in found):\n        found.append(BiasDetection(\n            name=\"groupthink\",\n            matches=[f\"votes_convergence={votes_convergence_ratio:.2f}\"]))",
                       "end_location": {
-                        "column": 59,
-                        "row": 128
-                      },
-                      "location": {
-                        "column": 18,
-                        "row": 128
-                      }
-                    }
-                  ],
-                  "message": "Replace with generator expression"
-                },
-                "location": {
-                  "column": 18,
-                  "row": 128
-                },
-                "message": "Replace unpacked list comprehension with a generator expression",
-                "noqa_row": 128,
-                "url": "https://docs.astral.sh/ruff/rules/unpacked-list-comprehension"
-              },
-              {
-                "cell": null,
-                "code": "UP017",
-                "end_location": {
-                  "column": 50,
-                  "row": 48
-                },
-                "filename": "/repo/backend/app/autonomy/credential_vault_universal.py",
-                "fix": {
-                  "applicability": "safe",
-                  "edits": [
-                    {
-                      "content": "from datetime import datetime, timezone, UTC",
-                      "end_location": {
-                        "column": 40,
-                        "row": 17
+                        "column": 79,
+                        "row": 108
                       },
                       "location": {
                         "column": 1,
-                        "row": 17
-                      }
-                    },
-                    {
-                      "content": "UTC",
-                      "end_location": {
-                        "column": 50,
-                        "row": 48
-                      },
-                      "location": {
-                        "column": 38,
-                        "row": 48
+                        "row": 104
                       }
                     }
                   ],
-                  "message": "Convert to `datetime.UTC` alias"
+                  "message": "Combine `if` statements using `and`"
                 },
                 "location": {
-                  "column": 38,
-                  "row": 48
+                  "column": 5,
+                  "row": 104
                 },
-                "message": "Use `datetime.UTC` alias",
-                "noqa_row": 48,
-                "url": "https://docs.astral.sh/ruff/rules/datetime-timezone-utc"
+                "message": "Use a single `if` statement instead of nested `if` statements",
+                "noqa_row": 104,
+                "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+              },
+              {
+                "cell": null,
+                "code": "RUF100",
+                "end_location": {
+                  "column": 41,
+                  "row": 73
+                },
+                "filename": "/repo/backend/app/cognition/cot_engine.py",
+                "fix": {
+                  "applicability": "safe",
+                  "edits": [
+                    {
+                      "content": "",
+                      "end_location": {
+                        "column": 75,
+                        "row": 73
+                      },
+                      "location": {
+                        "column": 27,
+                        "row": 73
+                      }
+                    }
+                  ],
+                  "message": "Remove unused `noqa` directive"
+                },
+                "location": {
+                  "column": 29,
+                  "row": 73
+                },
+                "message": "Unused `noqa` directive (non-enabled: `S307`)",
+                "noqa_row": 73,
+                "url": "https://docs.astral.sh/ruff/rules/unused-noqa"
+              },
+              {
+                "cell": null,
+                "code": "SIM105",
+                "end_location": {
+                  "column": 21,
+                  "row": 58
+                },
+                "filename": "/repo/backend/app/cognition/human_reasoning_override.py",
+                "fix": {
+                  "applicability": "unsafe",
+                  "edits": [
+                    {
+                      "content": "import contextlib\r\n",
+                      "end_location": {
+                        "column": 1,
+                        "row": 11
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 11
+                      }
+                    },
+                    {
+                      "content": "with contextlib.suppress(_j.JSONDecodeError)",
+                      "end_location": {
+                        "column": 16,
+                        "row": 55
+                      },
+                      "location": {
+                        "column": 13,
+                        "row": 55
+                      }
+                    },
+                    {
+                      "content": "",
+                      "end_location": {
+                        "column": 1,
+                        "row": 59
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 57
+                      }
+                    }
+                  ],
+                  "message": "Replace with `contextlib.suppress(_j.JSONDecodeError)`"
+                },
+                "location": {
+                  "column": 13,
+                  "row": 55
+                },
+                "message": "Use `contextlib.suppress(_j.JSONDecodeError)` instead of `try`-`except`-`pass`",
+                "noqa_row": 55,
+                "url": "https://docs.astral.sh/ruff/rules/suppressible-exception"
+              },
+              {
+                "cell": null,
+                "code": "SIM105",
+                "end_location": {
+                  "column": 21,
+                  "row": 41
+                },
+                "filename": "/repo/backend/app/cognition/reasoning_reproducibility_test.py",
+                "fix": {
+                  "applicability": "unsafe",
+                  "edits": [
+                    {
+                      "content": "import contextlib\r\n",
+                      "end_location": {
+                        "column": 1,
+                        "row": 12
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 12
+                      }
+                    },
+                    {
+                      "content": "with contextlib.suppress(json.JSONDecodeError)",
+                      "end_location": {
+                        "column": 16,
+                        "row": 38
+                      },
+                      "location": {
+                        "column": 13,
+                        "row": 38
+                      }
+                    },
+                    {
+                      "content": "",
+                      "end_location": {
+                        "column": 1,
+                        "row": 42
+                      },
+                      "location": {
+                        "column": 1,
+                        "row": 40
+                      }
+                    }
+                  ],
+                  "message": "Replace with `contextlib.suppress(json.JSONDecodeError)`"
+                },
+                "location": {
+                  "column": 13,
+                  "row": 38
+                },
+                "message": "Use `contextlib.suppress(json.JSONDecodeError)` instead of `try`-`except`-`pass`",
+                "noqa_row": 38,
+                "url": "https://docs.astral.sh/ruff/rules/suppressible-exception"
               }
             ],
             "bandit_severity": {
               "HIGH": 0,
-              "MEDIUM": 12,
-              "LOW": 13
+              "MEDIUM": 9,
+              "LOW": 15
             }
           },
-          "duration_s": 8.713
+          "duration_s": 14.879
         },
         {
           "name": "P1.4 mypy (lenient)",
@@ -253,14 +248,14 @@
             "critical": 0,
             "sample": []
           },
-          "duration_s": 0.024
+          "duration_s": 0.018
         },
         {
           "name": "P1.5 OpenAPI contract",
           "status": "PASS",
-          "summary": "175 endpoints declares, 0 requis manquants",
+          "summary": "226 endpoints declares, 0 requis manquants",
           "details": {
-            "endpoint_count": 175,
+            "endpoint_count": 226,
             "missing_required": [],
             "components": [
               "HTTPValidationError",
@@ -274,12 +269,12 @@
               "ValidationError"
             ]
           },
-          "duration_s": 0.817
+          "duration_s": 1.101
         },
         {
           "name": "P1.6 Imports coherence (app.*)",
           "status": "PASS",
-          "summary": "61 modules 'app.*' references, 0 introuvables",
+          "summary": "89 modules 'app.*' references, 0 introuvables",
           "details": {
             "modules_referenced": [
               "app.agents.base_agent",
@@ -304,11 +299,27 @@
               "app.cognition.reasoning_core",
               "app.cognition.reasoning_trace_models",
               "app.config",
+              "app.core",
+              "app.core.domain_context",
+              "app.core.domain_engine",
+              "app.core.domain_results",
+              "app.core.feature_flags",
+              "app.core.rules_engine",
               "app.ctc",
               "app.database",
+              "app.domains",
+              "app.domains._base",
+              "app.domains.comptabilite",
+              "app.domains.fiscal_dz",
+              "app.domains.juridique",
+              "app.domains.logistique",
+              "app.domains.rh",
               "app.governance",
               "app.governance._json_utils",
               "app.governance.invariants_runtime",
+              "app.health",
+              "app.health.checks",
+              "app.health.router",
               "app.inbox",
               "app.inbox.user_interaction_router",
               "app.intake",
@@ -318,8 +329,16 @@
               "app.intake.universal_intake",
               "app.integrations.sonarqube_client",
               "app.integrations.vault_client",
+              "app.intelligence.active_learner",
+              "app.intelligence.cache_evolved",
+              "app.intelligence.explainer",
+              "app.intelligence.knowledge_graph",
               "app.middleware.rate_limiter",
               "app.middleware.tenant",
+              "app.observability",
+              "app.observability.datadog_exporter",
+              "app.observability.sentry_integration",
+              "app.observability.slo_tracker",
               "app.orchestration",
               "app.orchestration.auto_tuner",
               "app.orchestration.confidence_report",
@@ -336,6 +355,10 @@
               "app.orchestrator",
               "app.provisioning",
               "app.provisioning.browser_ops_agent",
+              "app.resilience",
+              "app.resilience.chaos",
+              "app.resilience.circuit_breakers",
+              "app.resilience.runbooks",
               "app.routers",
               "app.schemas",
               "app.validation.level_zero",
@@ -346,7 +369,7 @@
             ],
             "missing": []
           },
-          "duration_s": 2.519
+          "duration_s": 4.072
         },
         {
           "name": "P1.7 CDC DZ conformity (8 regles)",
@@ -355,31 +378,26 @@
           "details": {
             "missing": []
           },
-          "duration_s": 0.012
+          "duration_s": 0.01
         }
       ]
     },
     {
       "name": "Phase 2 · Verification par ligne",
-      "status": "WARN",
-      "score": 0.7143,
-      "duration_s": 20.94,
+      "status": "FAIL",
+      "score": 0.5,
+      "duration_s": 25.33,
       "checks": [
         {
           "name": "P2.1 Cyclomatic complexity (gate CC>15, dense<22)",
           "status": "WARN",
-          "summary": "1343 blocs, 36 dense (11-15), 0 trop complexe (>15)",
+          "summary": "1728 blocs, 37 dense (11-15), 2 trop complexe (>15)",
           "details": {
             "dense_cc_11_15": [
               {
                 "path": "/repo/backend/app/orchestrator.py",
                 "name": "run_dag",
                 "cc": 14
-              },
-              {
-                "path": "/repo/backend/app/worker.py",
-                "name": "run_task",
-                "cc": 15
               },
               {
                 "path": "/repo/backend/app/worker.py",
@@ -395,27 +413,36 @@
                 "path": "/repo/backend/app/autonomy/autonomy_auditor.py",
                 "name": "_load_raw",
                 "cc": 11
+              },
+              {
+                "path": "/repo/backend/app/autonomy/autonomy_auditor.py",
+                "name": "_outcomes_stats",
+                "cc": 11
               }
             ],
-            "too_complex_cc_15_plus": []
+            "too_complex_cc_15_plus": [
+              {
+                "path": "/repo/backend/app/core/rules_engine.py",
+                "name": "_eval",
+                "cc": 31
+              },
+              {
+                "path": "/repo/backend/app/observability/sentry_integration.py",
+                "name": "capture",
+                "cc": 18
+              }
+            ]
           },
-          "duration_s": 2.478
+          "duration_s": 4.628
         },
         {
           "name": "P2.2 Dead code (vulture conf>=80)",
-          "status": "WARN",
-          "summary": "6 candidat(s) de code mort",
+          "status": "PASS",
+          "summary": "0 candidat(s) de code mort",
           "details": {
-            "sample": [
-              "backend/app/cognition/mcts_reasoning.py:95: unused variable 'root_state' (100% confidence)",
-              "backend/app/ctc/assertion_normalizer.py:101: unused variable 'source_version' (100% confidence)",
-              "backend/app/routers/truth.py:70: unused import 'backward_compatibility_checker' (90% confidence)",
-              "backend/app/routers/truth.py:70: unused import 'differential_analyzer' (90% confidence)",
-              "backend/app/routers/truth.py:70: unused import 'rework_engine' (90% confidence)",
-              "backend/app/routers/truth.py:70: unused import 'truth_judge' (90% confidence)"
-            ]
+            "sample": []
           },
-          "duration_s": 6.235
+          "duration_s": 0.002
         },
         {
           "name": "P2.3 Secrets hardcodes",
@@ -424,30 +451,88 @@
           "details": {
             "findings": []
           },
-          "duration_s": 2.721
+          "duration_s": 5.675
         },
         {
           "name": "P2.4 Conventions nommage",
-          "status": "PASS",
-          "summary": "0 violation(s) naming",
+          "status": "FAIL",
+          "summary": "15 violation(s) naming",
           "details": {
-            "sample": []
+            "sample": [
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 63,
+                "kind": "class",
+                "name": "RB001_PostgresDown"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 82,
+                "kind": "class",
+                "name": "RB002_RedisDown"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 97,
+                "kind": "class",
+                "name": "RB003_VaultSealed"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 117,
+                "kind": "class",
+                "name": "RB004_ClaudeRateLimit"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 135,
+                "kind": "class",
+                "name": "RB005_DiskFull"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 160,
+                "kind": "class",
+                "name": "RB006_MemoryLeak"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 175,
+                "kind": "class",
+                "name": "RB007_QueueSaturation"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 190,
+                "kind": "class",
+                "name": "RB008_EvidenceCorruption"
+              }
+            ]
           },
-          "duration_s": 2.151
+          "duration_s": 3.768
         },
         {
           "name": "P2.5 Duplications de fonctions",
-          "status": "PASS",
-          "summary": "0 cluster(s) de duplications",
+          "status": "WARN",
+          "summary": "1 cluster(s) de duplications",
           "details": {
-            "clusters": []
+            "clusters": [
+              {
+                "hash": "fe63cabea377",
+                "functions": [
+                  "backend/app/intelligence/active_learner.py::_parse_json",
+                  "backend/app/intelligence/explainer.py::_json",
+                  "backend/app/intelligence/knowledge_graph.py::_json"
+                ]
+              }
+            ]
           },
-          "duration_s": 3.032
+          "duration_s": 4.123
         },
         {
           "name": "P2.6 Docstrings publiques (gate 40%)",
           "status": "WARN",
-          "summary": "317/816 fonctions publiques documentees (39%)",
+          "summary": "391/1079 fonctions publiques documentees (36%)",
           "details": {
             "missing_sample": [
               {
@@ -491,29 +576,59 @@
                 "name": "initialize_all"
               }
             ],
-            "ratio": 0.388
+            "ratio": 0.362
           },
-          "duration_s": 2.189
+          "duration_s": 3.922
         },
         {
           "name": "P2.7 Gestion erreurs (bare except / except pass)",
-          "status": "WARN",
-          "summary": "2 pattern(s) douteux",
+          "status": "FAIL",
+          "summary": "13 pattern(s) douteux",
           "details": {
             "sample": [
               {
                 "path": "backend/app/cognition/human_reasoning_override.py",
-                "line": 58,
+                "line": 57,
+                "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/cognition/reasoning_reproducibility_test.py",
+                "line": 40,
+                "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/core/rules_engine.py",
+                "line": 243,
+                "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/ctc/truth_engine_snapshotter.py",
+                "line": 52,
                 "kind": "except_pass"
               },
               {
                 "path": "backend/app/ctc/truth_explainability_api.py",
                 "line": 32,
                 "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/observability/otel_setup.py",
+                "line": 206,
+                "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/resilience/runbooks.py",
+                "line": 155,
+                "kind": "except_pass"
+              },
+              {
+                "path": "backend/app/workers/tasks/tier7_backup.py",
+                "line": 98,
+                "kind": "except_pass"
               }
             ]
           },
-          "duration_s": 2.149
+          "duration_s": 3.208
         }
       ]
     },
@@ -521,7 +636,7 @@
       "name": "Phase 3 · Cross-validation",
       "status": "PASS",
       "score": 1.0,
-      "duration_s": 1.42,
+      "duration_s": 3.0,
       "checks": [
         {
           "name": "P3.1 Coherence front <-> back",
@@ -530,14 +645,16 @@
           "details": {
             "issues": []
           },
-          "duration_s": 0.026
+          "duration_s": 0.044
         },
         {
           "name": "P3.2 BDD <-> models <-> migrations",
           "status": "PASS",
-          "summary": "96 tables, 0 manquantes",
+          "summary": "106 tables, 0 manquantes",
           "details": {
             "tables": [
+              "active_learning_loops",
+              "active_learning_metrics",
               "agent_benchmarks",
               "agent_executions",
               "agent_marketplace",
@@ -566,6 +683,7 @@
               "debate_sessions",
               "decision_router_log",
               "decisions_audit",
+              "decisions_explanations",
               "defect_taxonomy",
               "drift_alerts",
               "dz_rules_config",
@@ -576,6 +694,8 @@
               "evidence_harvesting_log",
               "evidence_ledger",
               "evidence_signing_keys",
+              "feature_flag_events",
+              "feature_flags",
               "graph_traces",
               "hard_boundary_registry",
               "human_necessity_proofs",
@@ -585,6 +705,8 @@
               "incident_log",
               "innovation_items",
               "intervention_outcomes",
+              "kg_edges",
+              "kg_nodes",
               "mcts_runs",
               "meta_cognitive_reports",
               "meta_metrics_snapshots",
@@ -613,6 +735,9 @@
               "runtime_metrics",
               "semantic_cache",
               "sessions",
+              "slo_definitions",
+              "slo_incidents",
+              "slo_measurements",
               "system_parameters",
               "tasks",
               "tenants",
@@ -638,7 +763,7 @@
             "missing": [],
             "has_pydantic_schemas": true
           },
-          "duration_s": 0.128
+          "duration_s": 1.181
         },
         {
           "name": "P3.3 Agents <-> registry <-> DAG",
@@ -647,7 +772,7 @@
           "details": {
             "issues": []
           },
-          "duration_s": 1.071
+          "duration_s": 1.489
         },
         {
           "name": "P3.4 Config <-> env.example <-> compose",
@@ -657,7 +782,7 @@
             "env_count": 39,
             "issues": []
           },
-          "duration_s": 0.054
+          "duration_s": 0.122
         },
         {
           "name": "P3.5 Pipeline <-> scoring <-> verdicts",
@@ -666,7 +791,7 @@
           "details": {
             "issues": []
           },
-          "duration_s": 0.079
+          "duration_s": 0.103
         },
         {
           "name": "P3.6 Memoire <-> benchmarks <-> cost",
@@ -675,7 +800,7 @@
           "details": {
             "issues": []
           },
-          "duration_s": 0.041
+          "duration_s": 0.05
         },
         {
           "name": "P3.7 Securite bout-en-bout",
@@ -684,44 +809,44 @@
           "details": {
             "issues": []
           },
-          "duration_s": 0.019
+          "duration_s": 0.023
         }
       ]
     },
     {
       "name": "Phase 4 · Stress",
-      "status": "WARN",
-      "score": 0.9286,
-      "duration_s": 290.79,
+      "status": "FAIL",
+      "score": 0.7857,
+      "duration_s": 425.0,
       "checks": [
         {
           "name": "P4.1 10 Classe A paralleles",
-          "status": "PASS",
-          "summary": "10/10 completed, 10/10 termines",
+          "status": "FAIL",
+          "summary": "0/10 completed, 0/10 termines",
           "details": {
             "task_ids": [
-              "7e9e5897-751d-4912-ad80-25113b5da154",
-              "a8e0544c-5ac7-4b7c-931d-71e4ed174438",
-              "ce0a559a-5f54-4736-9e0c-277f0f98a179",
-              "fcb770d8-f821-4d01-9572-c6123e9f2299",
-              "dc1fef82-6671-4f4a-b55b-a33bd320f511",
-              "d42c9a62-3548-43de-821d-34578ae9dfda",
-              "4b1c46fc-532a-4d5f-908d-d6b0e7b55900",
-              "bcb330db-94ca-45a6-9df4-b07a84fbc953",
-              "dcbcfdb6-0eba-4810-9757-23acdb7d107d",
-              "4248e5e9-8798-4fc8-9aab-56f93753e79b"
+              "bda59818-e945-465c-8c33-e29618f6c396",
+              "d7e4640b-cc83-4a10-b179-4b2d37292381",
+              "7eba2c66-53c5-4f42-af5e-188ca4ea1674",
+              "13a93164-0ccd-4db2-b467-0137455ad222",
+              "527995ba-1508-4bf6-850c-f9ec2c73901c",
+              "5bc6463b-46bd-4aff-8c01-b6312e779ad2",
+              "bd1854c6-4de2-4634-8c66-f5c0200cba35",
+              "7ede27ac-80de-4769-8658-3682277b6b01",
+              "5bdc7add-34cc-490a-8dc0-e296a4c9c719",
+              "2cfcb0bf-399b-409b-af3d-65a7cc53c144"
             ]
           },
-          "duration_s": 163.706
+          "duration_s": 181.636
         },
         {
           "name": "P4.2 Classe B complet (Paie DZ profond)",
           "status": "WARN",
-          "summary": "status=failed score=0.7",
+          "summary": "status=timeout score=None",
           "details": {
-            "task_id": "83ab037c-b1ee-41bd-89f7-74a94feee540"
+            "task_id": "82a71b5b-1ff6-41fe-9426-c0dbde4813eb"
           },
-          "duration_s": 124.996
+          "duration_s": 241.464
         },
         {
           "name": "P4.3 Logique rework / raffinement",
@@ -730,14 +855,14 @@
           "details": {
             "max_rounds_found": true
           },
-          "duration_s": 0.03
+          "duration_s": 0.022
         },
         {
           "name": "P4.4 Fallback Anthropic timeout / quota",
           "status": "PASS",
           "summary": "template_fn=True exception_handler=True",
           "details": {},
-          "duration_s": 0.018
+          "duration_s": 0.011
         },
         {
           "name": "P4.5 DB + analytics sous charge",
@@ -752,7 +877,7 @@
               "marketplace": 200
             }
           },
-          "duration_s": 0.048
+          "duration_s": 0.059
         },
         {
           "name": "P4.6 WebSocket 100 connexions",
@@ -761,7 +886,7 @@
           "details": {
             "failed": 0
           },
-          "duration_s": 1.938
+          "duration_s": 0.856
         },
         {
           "name": "P4.7 Injection SQL + XSS + prompt",
@@ -770,7 +895,7 @@
           "details": {
             "findings": []
           },
-          "duration_s": 0.175
+          "duration_s": 1.125
         }
       ]
     },
@@ -778,7 +903,7 @@
       "name": "Phase 5 · V4.2 Quality Gates",
       "status": "PASS",
       "score": 1.0,
-      "duration_s": 0.33,
+      "duration_s": 0.47,
       "checks": [
         {
           "name": "P5.1 V4.2 modules (24+5)",
@@ -787,7 +912,7 @@
           "details": {
             "missing": []
           },
-          "duration_s": 0.12
+          "duration_s": 0.143
         },
         {
           "name": "P5.2 Test manifests (4 types)",
@@ -796,7 +921,7 @@
           "details": {
             "missing": []
           },
-          "duration_s": 0.021
+          "duration_s": 0.032
         },
         {
           "name": "P5.3 Migration 008 tables V4.2",
@@ -805,28 +930,28 @@
           "details": {
             "missing": []
           },
-          "duration_s": 0.007
+          "duration_s": 0.012
         },
         {
           "name": "P5.4 DZ rules seedees",
           "status": "PASS",
           "summary": "8 regles actives (>=8 requis)",
           "details": {},
-          "duration_s": 0.008
+          "duration_s": 0.017
         },
         {
           "name": "P5.5 Innovation pipeline 8 stages + rejete",
           "status": "PASS",
           "summary": "9 stages, transitions definies",
           "details": {},
-          "duration_s": 0.034
+          "duration_s": 0.051
         },
         {
           "name": "P5.6 Quality Kernel : invariants",
           "status": "PASS",
           "summary": "6 invariants signes",
           "details": {},
-          "duration_s": 0.118
+          "duration_s": 0.179
         },
         {
           "name": "P5.7 Patch types : matrice revalidation complete",
@@ -835,7 +960,7 @@
           "details": {
             "missing": []
           },
-          "duration_s": 0.023
+          "duration_s": 0.034
         }
       ]
     }

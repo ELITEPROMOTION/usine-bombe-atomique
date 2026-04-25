@@ -1,0 +1,42 @@
+{
+  "captured_at": "2026-04-25T18:40:00Z",
+  "environment": "local-docker-windows-11",
+  "connectivity": {
+    "postgresql": {"p50_ms": 0.32, "p95_ms": 0.43, "p99_ms": 2.08, "samples": 100, "verdict": "excellent"},
+    "redis": {"p50_ms": 0.34, "p95_ms": 0.56, "p99_ms": 20.84, "samples": 100, "verdict": "good"},
+    "vault": {"status": "unsealed", "version": "1.17.6", "verdict": "healthy"},
+    "claude_api": {"model": "claude-sonnet-4-5", "real_call": "OK", "verdict": "healthy"},
+    "sonarqube": {"version": "10.6.0.92116", "status": "UP", "verdict": "healthy"}
+  },
+  "endpoints_get": {
+    "tested_no_param": 106,
+    "ok_2xx": 105,
+    "broken_503_or_404": 1,
+    "rate_limited_429": 43,
+    "skipped_with_path_params": 57
+  },
+  "tests": {
+    "collected": 1440,
+    "expected_min_after_v7": 1460
+  },
+  "data_volumes": {
+    "tasks_total": 2955,
+    "evidence_ledger_events": 3866,
+    "audit_events": 2418,
+    "kg_nodes": 49,
+    "kg_edges": 43,
+    "rules_yaml": 43,
+    "domains": 5,
+    "tables_public": 107,
+    "migrations": 30
+  },
+  "containers": {
+    "running_healthy": 9,
+    "expected_after_v7c": 10
+  },
+  "resilience": {
+    "circuit_breakers": 6,
+    "health_checks": 15,
+    "slos": 4
+  }
+}
