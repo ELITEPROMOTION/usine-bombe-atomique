@@ -21,6 +21,7 @@ from app.routers import (
     health,
     intelligence,
     observability,
+    osint,
     projects,
     provisioning,
     resilience,
@@ -98,4 +99,5 @@ app.include_router(health_v2_router, prefix=f"{settings.API_PREFIX}", tags=["hea
 app.include_router(intelligence.router, prefix=f"{settings.API_PREFIX}", tags=["intelligence_v5_8"])
 app.include_router(observability.router, prefix=f"{settings.API_PREFIX}", tags=["observability_v5_9"])
 app.include_router(projects.router, prefix=f"{settings.API_PREFIX}/projects", tags=["projects_v7"])
+app.include_router(osint.router, prefix=f"{settings.API_PREFIX}/osint", tags=["osint_v8"])
 app.include_router(websocket.router, tags=["ws"])
