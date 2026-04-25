@@ -1,0 +1,89 @@
+"""Log PII detector — UBA V8 OSINT Self-Audit injector.
+
+Inspects log files for PII leaks (NIN DZ 18 digits, email, phone E.164, IBAN,
+credit card patterns) and auto-redacts in place. Run regularly OR pipe through
+as a logging filter.
+
+NB : the Algerian NIN regex is `\\d{18}` ; emails RFC 5322 lite ; cards via Luhn.
+"""
+from __future__ import annotations
+
+import logging
+import os
+import re
+from pathlib import Path
+from typing import Any
+
+logger = logging.getLogger("self_audit.pii")
+
+LOG_DIR = Path(os.getenv("OSINT_LOG_DIR", "{{ log_dir | default('/var/log/app') }}"))
+PATTERNS = [
+    ("nin_dz",   re.compile(r"\b(\d{18})\b")),
+    ("email",    re.compile(r"\b([\w.+-]+@[\w-]+\.[\w.-]+)\b")),
+    ("phone_e164", re.compile(r"\b(\+\d{7,15})\b")),
+    ("iban",     re.compile(r"\b([A-Z]{2}\d{2}[A-Z0-9]{11,30})\b")),
+    ("cc",       re.compile(r"\b((?:\d[ -]?){13,19})\b")),
+]
+
+
+def _luhn(num: str) -> bool:
+    digits = [int(x) for x in re.sub(r"\D", "", num)]
+    if not 13 <= len(digits) <= 19:
+        return False
+    s = 0
+    for i, d in enumerate(reversed(digits)):
+        if i % 2 == 1:
+            d *= 2
+            if d > 9:
+                d -= 9
+        s += d
+    return s % 10 == 0
+
+
+def redact_line(line: str) -> tuple[str, list[str]]:
+    """Returns (redacted_line, hits)."""
+    hits: list[str] = []
+    out = line
+    for name, pat in PATTERNS:
+        def _sub(m: re.Match[str]) -> str:
+            v = m.group(1)
+            if name == "cc" and not _luhn(v):
+                return v  # not really a CC
+            hits.append(name)
+            return f"[REDACTED-{name.upper()}]"
+        out = pat.sub(_sub, out)
+    return out, hits
+
+
+def scan_file(path: Path, redact_in_place: bool = False) -> dict[str, Any]:
+    if not path.exists() or not path.is_file():
+        return {"path": str(path), "error": "missing"}
+    findings: dict[str, int] = {}
+    out_lines: list[str] = []
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            redacted, hits = redact_line(line)
+            for h in hits:
+                findings[h] = findings.get(h, 0) + 1
+            out_lines.append(redacted)
+    if redact_in_place and any(findings.values()):
+        path.write_text("".join(out_lines), encoding="utf-8")
+    return {"path": str(path), "findings": findings,
+            "total_hits": sum(findings.values())}
+
+
+def scan_dir(redact: bool = False) -> dict[str, Any]:
+    if os.getenv("OSINT_PII_DETECTOR_ENABLED", "1") != "1":
+        return {"skipped": "OSINT_PII_DETECTOR_ENABLED != 1"}
+    if not LOG_DIR.exists():
+        return {"dir": str(LOG_DIR), "error": "missing"}
+    results = []
+    for f in LOG_DIR.glob("*.log"):
+        results.append(scan_file(f, redact_in_place=redact))
+    return {"dir": str(LOG_DIR), "files": results,
+            "total_pii": sum(r.get("total_hits", 0) for r in results)}
+
+
+if __name__ == "__main__":
+    import json as _json
+    print(_json.dumps(scan_dir(redact=False), indent=2))

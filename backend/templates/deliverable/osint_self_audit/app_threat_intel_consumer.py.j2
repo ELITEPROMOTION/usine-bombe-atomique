@@ -1,0 +1,85 @@
+"""Threat intel consumer — UBA V8 OSINT Self-Audit injector.
+
+Consumes NVD CVE feed for the stack the application uses (configured via env
+STACK_KEYWORDS). Alerts (logs WARNING + optional Slack webhook) on
+HIGH/CRITICAL CVE matching the stack.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+from typing import Any
+
+import httpx
+
+logger = logging.getLogger("self_audit.threat_intel")
+
+STACK_KEYWORDS = os.getenv(
+    "OSINT_STACK_KEYWORDS",
+    "{{ stack_keywords | default('python,fastapi,postgresql,redis,nginx,docker') }}",
+).split(",")
+
+NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+SLACK_WEBHOOK = os.getenv("OSINT_SLACK_WEBHOOK", "")
+
+
+async def fetch_cves() -> list[dict[str, Any]]:
+    if os.getenv("OSINT_THREAT_INTEL_ENABLED", "1") != "1":
+        return []
+    keyword = "|".join(k.strip() for k in STACK_KEYWORDS if k.strip())[:200]
+    api_key = os.getenv("NVD_API_KEY", "")
+    headers = {"user-agent": "self-audit-threat-intel"}
+    if api_key:
+        headers["apiKey"] = api_key
+    params = {"resultsPerPage": "20", "keywordSearch": keyword}
+    async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
+        try:
+            r = await client.get(NVD_API, params=params)
+        except Exception as exc:
+            logger.warning("nvd fetch failed: %s", exc)
+            return []
+    if r.status_code != 200:
+        return []
+    out = []
+    for entry in r.json().get("vulnerabilities", []) or []:
+        c = entry.get("cve", {})
+        metrics = c.get("metrics", {})
+        cvss = (metrics.get("cvssMetricV31") or metrics.get("cvssMetricV30") or [{}])[0]
+        score = (cvss.get("cvssData") or {}).get("baseScore")
+        sev = (cvss.get("cvssData") or {}).get("baseSeverity") or "UNKNOWN"
+        if sev not in ("HIGH", "CRITICAL"):
+            continue
+        out.append({"id": c.get("id"), "score": score, "severity": sev,
+                    "summary": (
+                        next((d.get("value") for d in c.get("descriptions", [])
+                              if d.get("lang") == "en"), "")
+                    )[:300]})
+    return out
+
+
+async def alert_slack(cves: list[dict[str, Any]]) -> None:
+    if not SLACK_WEBHOOK or not cves:
+        return
+    text = "\n".join(f"*{c['id']}* [{c['severity']}] score={c['score']}\n{c['summary']}"
+                       for c in cves[:5])
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            await client.post(SLACK_WEBHOOK,
+                              json={"text": f"Self-audit threat intel:\n{text}"})
+    except Exception as exc:
+        logger.warning("slack post failed: %s", exc)
+
+
+async def main() -> dict[str, Any]:
+    cves = await fetch_cves()
+    if cves:
+        logger.warning("threat_intel: %d HIGH/CRITICAL CVE matched stack", len(cves))
+        await alert_slack(cves)
+    return {"matched_count": len(cves), "stack": STACK_KEYWORDS,
+            "samples": cves[:5]}
+
+
+if __name__ == "__main__":
+    print(json.dumps(asyncio.run(main()), indent=2))

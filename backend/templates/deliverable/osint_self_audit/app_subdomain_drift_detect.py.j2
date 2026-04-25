@@ -1,0 +1,76 @@
+"""Subdomain drift detector — UBA V8 OSINT Self-Audit injector.
+
+Daily : query crt.sh (Certificate Transparency) for OWN domain, compare against
+last known list, alert on new subdomains (potential phishing or unauthorized
+deploy).
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+from pathlib import Path
+from typing import Any
+
+import httpx
+
+logger = logging.getLogger("self_audit.subdomain_drift")
+
+OWN_DOMAIN = os.getenv("OSINT_OWN_DOMAIN", "{{ own_domain | default('example.com') }}")
+STATE_FILE = Path(os.getenv("OSINT_DRIFT_STATE", "/tmp/subdomain_drift.json"))
+
+
+async def fetch_subdomains(domain: str) -> set[str]:
+    url = f"https://crt.sh/?q=%25.{domain}&output=json"
+    async with httpx.AsyncClient(timeout=20.0,
+                                  headers={"user-agent": "self-audit-drift"}) as client:
+        r = await client.get(url)
+    if r.status_code != 200:
+        return set()
+    try:
+        rows = r.json()
+    except Exception:
+        return set()
+    subs: set[str] = set()
+    for row in rows:
+        for n in (row.get("name_value") or "").splitlines():
+            n = n.strip().lower()
+            if n.endswith("." + domain.lower()) or n == domain.lower():
+                subs.add(n)
+    return subs
+
+
+def load_state() -> set[str]:
+    if not STATE_FILE.exists():
+        return set()
+    try:
+        return set(json.loads(STATE_FILE.read_text()))
+    except Exception:
+        return set()
+
+
+def save_state(subs: set[str]) -> None:
+    try:
+        STATE_FILE.write_text(json.dumps(sorted(subs)))
+    except Exception as exc:
+        logger.warning("save_state failed: %s", exc)
+
+
+async def main() -> dict[str, Any]:
+    if os.getenv("OSINT_SUBDOMAIN_DRIFT_ENABLED", "1") != "1":
+        return {"skipped": "OSINT_SUBDOMAIN_DRIFT_ENABLED != 1"}
+    current = await fetch_subdomains(OWN_DOMAIN)
+    previous = load_state()
+    added = sorted(current - previous)
+    removed = sorted(previous - current)
+    save_state(current)
+    out = {"domain": OWN_DOMAIN, "current_count": len(current),
+           "added": added, "removed": removed,
+           "alert": bool(added or removed)}
+    logger.info("subdomain_drift: %s", out)
+    return out
+
+
+if __name__ == "__main__":
+    print(asyncio.run(main()))

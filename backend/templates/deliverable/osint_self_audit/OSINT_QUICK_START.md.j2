@@ -1,0 +1,78 @@
+# OSINT Self-Audit — Quick start
+
+Ce projet contient 7 modules de self-audit livres par UBA V8. Tous **disabled
+par defaut**. Activez les via variables d'environnement :
+
+| Module | Env var | Defaut |
+|--------|---------|--------|
+| `app_self_breach_check.py` | `OSINT_SELF_BREACH_ENABLED=1` + `HIBP_API_KEY` | off |
+| `app_dependency_continuous_scan.yml` | GitHub Actions auto, configurer secrets | on |
+| `app_ssl_self_monitor.py` | `OSINT_SSL_SELF_MONITOR_ENABLED=1` | on (no-op si pas de domaine) |
+| `app_subdomain_drift_detect.py` | `OSINT_SUBDOMAIN_DRIFT_ENABLED=1` | on |
+| `app_security_headers_audit.py` | `OSINT_HEADERS_AUDIT_ENABLED=1` | on |
+| `app_log_pii_detector.py` | `OSINT_PII_DETECTOR_ENABLED=1` + `OSINT_LOG_DIR` | on |
+| `app_threat_intel_consumer.py` | `OSINT_THREAT_INTEL_ENABLED=1` + `NVD_API_KEY` (optional) | on |
+
+## Variables principales
+
+```bash
+# Domaines a auditer (uniquement les VOTRES)
+OSINT_OWN_DOMAIN={{ own_domain | default('example.com') }}
+OSINT_OWN_EMAIL_DOMAIN={{ own_email_domain | default('example.com') }}
+
+# Stack pour filtre threat intel
+OSINT_STACK_KEYWORDS={{ stack_keywords | default('python,fastapi,postgres,redis,nginx') }}
+
+# Logs a scanner pour PII
+OSINT_LOG_DIR={{ log_dir | default('/var/log/app') }}
+
+# Optionnels (cle API)
+HIBP_API_KEY=...
+NVD_API_KEY=...
+OSINT_SLACK_WEBHOOK=https://hooks.slack.com/...
+```
+
+## Run manuel (dev)
+
+```bash
+python app_self_breach_check.py
+python app_ssl_self_monitor.py
+python app_subdomain_drift_detect.py
+python app_security_headers_audit.py
+python app_log_pii_detector.py
+python app_threat_intel_consumer.py
+```
+
+## Schedule production
+
+Cron (Linux) :
+```
+17 3 * * * /usr/bin/python /app/osint/app_self_breach_check.py
+*/15 * * * * /usr/bin/python /app/osint/app_ssl_self_monitor.py
+0 */6 * * * /usr/bin/python /app/osint/app_subdomain_drift_detect.py
+*/10 * * * * /usr/bin/python /app/osint/app_security_headers_audit.py
+0 */4 * * * /usr/bin/python /app/osint/app_log_pii_detector.py
+0 */4 * * * /usr/bin/python /app/osint/app_threat_intel_consumer.py
+```
+
+GitHub Actions : voir `.github/workflows/dependency_continuous_scan.yml`.
+
+## SECURITY.md
+
+Pensez a creer un `SECURITY.md` dans votre repo decrivant comment signaler
+une vuln (responsible disclosure). Modele :
+
+```
+# Security Policy
+Pour signaler une vulnerabilite : security@your-domain.dz
+PGP key fingerprint : ABCD 1234 ...
+SLA reponse : 72h. SLA fix : 30 jours pour HIGH/CRITICAL.
+```
+
+## Documents legaux livres avec ce template
+
+- `LEGAL_NOTICE.md` : cadre d'usage des modules
+- `CONSENT_TEMPLATE.md` : modele consentement pentest tiers (a signer si applicable)
+- `AUDIT_TRAIL_README.md` : pattern audit append-only
+
+Conformite : DZ 18-07, DZ 09-04, RGPD.

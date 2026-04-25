@@ -1,0 +1,59 @@
+# Audit trail — comment proteger l'integrite de vos logs OSINT
+
+UBA V8 livre une approche append-only chain-hashed pour tout audit trail
+sensible. Vous pouvez reproduire ce pattern dans votre app livree :
+
+```sql
+CREATE TABLE app_audit_trail (
+    id           BIGSERIAL PRIMARY KEY,
+    event_id     UUID NOT NULL UNIQUE,
+    actor        VARCHAR(120) NOT NULL,
+    action       VARCHAR(120) NOT NULL,
+    target       VARCHAR(255) NOT NULL,
+    payload_hash CHAR(64) NOT NULL,
+    prev_hash    CHAR(64) NOT NULL,
+    chain_hash   CHAR(64) NOT NULL UNIQUE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION app_audit_block_mutations()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'app_audit_trail is append-only';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_app_audit_block_update BEFORE UPDATE ON app_audit_trail
+  FOR EACH ROW EXECUTE FUNCTION app_audit_block_mutations();
+CREATE TRIGGER trg_app_audit_block_delete BEFORE DELETE ON app_audit_trail
+  FOR EACH ROW EXECUTE FUNCTION app_audit_block_mutations();
+```
+
+Insertion atomique avec `FOR UPDATE` :
+
+```python
+prev = (await conn.fetchrow(
+    "SELECT chain_hash FROM app_audit_trail ORDER BY id DESC LIMIT 1 FOR UPDATE"
+))["chain_hash"] or "0" * 64
+chain = sha256(prev + sha256(canonical_json(payload)))
+```
+
+Verification periodique :
+
+```python
+for row in fetch_all_in_order():
+    if sha256(row.prev_hash + row.payload_hash) != row.chain_hash:
+        alert("CHAIN_BROKEN", row_id=row.id)
+```
+
+## Conformite
+
+- DZ 18-07 : votre audit trail PROUVE le respect du principe d'integrite +
+  imputabilite. Conserver 7 ans.
+- RGPD art.5.1.f : integrite des donnees personnelles.
+- ISO 27001 A.12.4 : journalisation et surveillance.
+
+## Export
+
+Implementez un endpoint `/audit/export?since=...&until=...` qui retourne un
+JSON signe (chain_hash final inclus) pour fourniture en cas de controle.

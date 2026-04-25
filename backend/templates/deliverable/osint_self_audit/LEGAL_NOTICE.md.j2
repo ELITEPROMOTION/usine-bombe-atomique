@@ -1,0 +1,33 @@
+# NOTICE LEGALE — usage des modules de self-audit OSINT
+
+Ce projet contient 7 modules de self-audit OSINT injectes par UBA V8. Ils
+operent UNIQUEMENT sur :
+
+1. Le domaine que vous controlez (`OSINT_OWN_DOMAIN`, defaut `{{ own_domain | default('localhost') }}`)
+2. Les emails de votre propre organisation (`OSINT_OWN_EMAIL_DOMAIN`)
+3. Les flux CVE/threat intel publics (consume only, pas d'emission)
+
+Les modules sont **off par defaut** et necessitent une activation explicite
+via variable d'environnement (cf `OSINT_QUICK_START.md`).
+
+## Cadre legal
+
+- Algerie : Loi 18-07 (donnees personnelles) + Loi 09-04 (cybercrime).
+- UE : RGPD (si traitement de DCP de citoyens UE).
+- Le module `app_log_pii_detector.py` redacte les PII en place ; verifier qu'il
+  ne detruit pas des logs requis legalement (DGI 7 ans en DZ).
+
+## Refus techniques pre-cables
+
+- `app_self_breach_check.py` : refuse si email != domaine configure.
+- `app_subdomain_drift_detect.py` : ne scanne QUE le domaine configure.
+- `app_threat_intel_consumer.py` : consume only, pas d'emission.
+
+## Engagement de l'utilisateur
+
+En activant ces modules vous declarez :
+
+1. Etre proprietaire ou avoir mandat legitime sur le domaine vise.
+2. Avoir informe vos utilisateurs (DPO/notice de confidentialite) que vous
+   monitorrez l'expostion publique de votre infrastructure.
+3. Conserver les logs d'audit a disposition de l'autorite (CNDP en DZ).

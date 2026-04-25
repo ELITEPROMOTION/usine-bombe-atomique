@@ -228,7 +228,7 @@ async def download_project_deliverable(project_id: UUID) -> StreamingResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
         task = await conn.fetchrow(
-            "SELECT status FROM tasks WHERE id = $1", project_id,
+            "SELECT status, prompt FROM tasks WHERE id = $1", project_id,
         )
         if not task:
             raise HTTPException(404, "Project not found")
@@ -243,9 +243,18 @@ async def download_project_deliverable(project_id: UUID) -> StreamingResponse:
     if not artifacts:
         raise HTTPException(404, "No artifacts on delivered project")
 
+    # V8 : inject OSINT self-audit templates into every deliverable
+    from app.orchestration.osint_template_injector import (
+        build_context, inject_into_artifacts,
+    )
+    artifact_list = [{"path": a["path"], "content": a["content"] or ""} for a in artifacts]
+    project_name = task["prompt"].split("\n", 1)[0].replace("# Projet :", "").strip() or "uba-project"
+    ctx = build_context(project_name=project_name)
+    artifact_list = inject_into_artifacts(artifact_list, ctx)
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for a in artifacts:
+        for a in artifact_list:
             zf.writestr(a["path"], a["content"] or "")
     buf.seek(0)
 

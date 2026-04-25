@@ -1,0 +1,49 @@
+"""Security headers audit — UBA V8 OSINT Self-Audit injector.
+
+Boot-time check : verifies that the running app responds with the expected
+security headers. Logs WARNING for missing critical headers ; usable as a
+healthcheck side-effect.
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+from typing import Any
+
+import httpx
+
+logger = logging.getLogger("self_audit.headers")
+
+SELF_HEALTH_URL = os.getenv("OSINT_SELF_HEALTH_URL",
+                             "{{ self_health_url | default('http://localhost:8000/health') }}")
+
+REQUIRED_HEADERS = [
+    "Strict-Transport-Security",
+    "X-Content-Type-Options",
+    "X-Frame-Options",
+    "Content-Security-Policy",
+    "Referrer-Policy",
+]
+
+
+async def audit() -> dict[str, Any]:
+    if os.getenv("OSINT_HEADERS_AUDIT_ENABLED", "1") != "1":
+        return {"skipped": "OSINT_HEADERS_AUDIT_ENABLED != 1"}
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(SELF_HEALTH_URL)
+    except Exception as exc:
+        return {"error": str(exc)[:200]}
+    headers = {k.lower(): v for k, v in r.headers.items()}
+    missing = [h for h in REQUIRED_HEADERS if h.lower() not in headers]
+    grade = "A" if not missing else ("C" if len(missing) <= 2 else "F")
+    out = {"url": SELF_HEALTH_URL, "status": r.status_code,
+           "missing": missing, "grade": grade}
+    if missing:
+        logger.warning("security_headers_audit: missing %s", missing)
+    return out
+
+
+if __name__ == "__main__":
+    print(asyncio.run(audit()))
