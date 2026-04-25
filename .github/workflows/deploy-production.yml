@@ -1,0 +1,191 @@
+name: Deploy Production (V5.9)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v5.5.5)"
+        required: true
+        type: string
+      mode:
+        description: "Deploy mode"
+        required: true
+        default: "rolling"
+        type: choice
+        options: [rolling, full, migrate, rollback]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ${{ github.repository_owner }}/uba-backend
+  IMAGE_FRONTEND: ${{ github.repository_owner }}/uba-frontend
+
+jobs:
+  validate-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve tag
+        id: tag
+        run: |
+          TAG="${{ inputs.tag || github.event.release.tag_name }}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG' does not match v*.*.* (or v*.*.*-suffix)"
+            exit 1
+          fi
+      - name: Verify tag exists
+        run: git rev-parse --verify "refs/tags/${{ steps.tag.outputs.tag }}"
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+
+  build-prod:
+    needs: validate-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-release.outputs.tag }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build + push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          cache-from: type=gha,scope=backend-prod
+          cache-to: type=gha,scope=backend-prod,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}:${{ needs.validate-release.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}:production
+      - name: Build + push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          cache-from: type=gha,scope=frontend-prod
+          cache-to: type=gha,scope=frontend-prod,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:${{ needs.validate-release.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:production
+
+  approval:
+    needs: [validate-release, build-prod]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: production-approval
+    steps:
+      - run: |
+          echo "Manual approval received for tag ${{ needs.validate-release.outputs.tag }}"
+
+  migrate-db:
+    needs: [validate-release, approval]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ inputs.mode != 'rollback' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-release.outputs.tag }}
+      - name: Install SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Apply pending migrations
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && docker compose -f docker-compose.production.yml exec -T backend python -m app.migrations.runner --apply || true"
+
+  deploy-prod:
+    needs: [validate-release, approval, migrate-db]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: https://uba.dendani.dz
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-release.outputs.tag }}
+      - name: Install SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Sync configs
+        run: |
+          rsync -az --delete \
+            deploy/ docker-compose.production.yml \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/srv/uba/
+      - name: Deploy with mode
+        env:
+          MODE: ${{ inputs.mode || 'rolling' }}
+          VERSION: ${{ needs.validate-release.outputs.tag }}
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && UBA_VERSION=$VERSION ./deploy/scripts/deploy.sh --$MODE"
+      - name: Smoke + healthcheck
+        run: |
+          set +e
+          fail=0
+          for r in /api/v1/health /api/v1/observability/datadog/status /api/v1/observability/sentry/status /api/v1/observability/otel/status; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://uba.dendani.dz$r" || echo 000)
+            echo "$r -> HTTP $code"
+            if [ "$code" != "200" ] && [ "$code" != "401" ]; then fail=1; fi
+          done
+          [ $fail -eq 0 ] || exit 2
+      - name: Auto-rollback on failure
+        if: failure()
+        env:
+          VERSION: ${{ needs.validate-release.outputs.tag }}
+        run: |
+          echo "::error::Production deploy failed for $VERSION - triggering rollback"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && ./deploy/scripts/deploy.sh --rollback || true"
+
+  post-deploy:
+    needs: [validate-release, deploy-prod]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-release.outputs.tag }}
+      - name: Install SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Compose status
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd /srv/uba && docker compose -f docker-compose.production.yml ps"
+      - name: Tag release as deployed
+        run: echo "Release ${{ needs.validate-release.outputs.tag }} deployed successfully"

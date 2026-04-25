@@ -1,0 +1,119 @@
+name: Deploy Staging (V5.9)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.staging.yml'
+      - 'deploy/**'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ${{ github.repository_owner }}/uba-backend
+  IMAGE_FRONTEND: ${{ github.repository_owner }}/uba-frontend
+
+jobs:
+  build-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: sha
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build + push backend (staging)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          cache-from: type=gha,scope=backend-staging
+          cache-to: type=gha,scope=backend-staging,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}:staging-${{ steps.sha.outputs.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}:staging
+      - name: Build + push frontend (staging)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          cache-from: type=gha,scope=frontend-staging
+          cache-to: type=gha,scope=frontend-staging,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:staging-${{ steps.sha.outputs.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}:staging
+
+  deploy-staging:
+    needs: build-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: https://staging.uba.dendani.dz
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SSH key
+        if: env.STAGING_SSH_KEY != ''
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+      - name: Known hosts
+        if: secrets.STAGING_VPS_HOST != ''
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.STAGING_VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Sync configs
+        if: secrets.STAGING_VPS_HOST != ''
+        run: |
+          rsync -az --delete \
+            deploy/ docker-compose.staging.yml \
+            ${{ secrets.STAGING_VPS_USER }}@${{ secrets.STAGING_VPS_HOST }}:/srv/uba-staging/
+      - name: GHCR login on VPS
+        if: secrets.STAGING_VPS_HOST != ''
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ssh ${{ secrets.STAGING_VPS_USER }}@${{ secrets.STAGING_VPS_HOST }} \
+            "echo '$GHCR_TOKEN' | docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+      - name: Pull + recreate
+        if: secrets.STAGING_VPS_HOST != ''
+        env:
+          VERSION: staging-${{ needs.build-staging.outputs.sha }}
+        run: |
+          ssh ${{ secrets.STAGING_VPS_USER }}@${{ secrets.STAGING_VPS_HOST }} \
+            "cd /srv/uba-staging && UBA_VERSION=$VERSION docker compose -f docker-compose.staging.yml pull && \
+             UBA_VERSION=$VERSION docker compose -f docker-compose.staging.yml up -d --remove-orphans"
+      - name: Smoke test
+        if: secrets.STAGING_VPS_HOST != ''
+        run: |
+          set +e
+          fail=0
+          for r in /api/v1/health /api/v1/observability/datadog/status /api/v1/observability/sentry/status; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://staging.uba.dendani.dz$r" || echo 000)
+            echo "$r -> HTTP $code"
+            if [ "$code" != "200" ] && [ "$code" != "401" ]; then fail=1; fi
+          done
+          [ $fail -eq 0 ] || exit 2
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Staging deployment failed for commit ${{ needs.build-staging.outputs.sha }}"
+          echo "Manual rollback: gh workflow run deploy-staging.yml -f rollback=true"

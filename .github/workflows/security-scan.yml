@@ -1,0 +1,170 @@
+name: Security Scan (V5.9)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # daily 3am UTC
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/requirements.txt'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  security-events: write
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit + safety
+        run: pip install --quiet pip-audit==2.7.3 safety==3.2.7
+      - name: pip-audit (Python deps)
+        working-directory: backend
+        continue-on-error: true
+        run: pip-audit -r requirements.txt --strict --format=json --output=audit.json
+      - name: Safety (Python deps)
+        working-directory: backend
+        continue-on-error: true
+        run: safety check --file requirements.txt --json --output=safety.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: npm audit (frontend)
+        working-directory: frontend
+        continue-on-error: true
+        run: npm audit --audit-level=high --json > npm-audit.json || true
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: |
+            backend/audit.json
+            backend/safety.json
+            frontend/npm-audit.json
+          retention-days: 30
+
+  sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bandit + semgrep
+        run: pip install --quiet bandit==1.7.10 semgrep==1.85.0
+      - name: Bandit (SARIF)
+        working-directory: backend
+        continue-on-error: true
+        run: bandit -r app -ll -x tests -f sarif -o ../bandit.sarif
+      - name: Semgrep (auto rules)
+        continue-on-error: true
+        run: semgrep --config=auto --error --json --output=semgrep.json backend/app
+      - name: Upload SARIF (Bandit)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast
+          path: |
+            bandit.sarif
+            semgrep.json
+          retention-days: 30
+
+  container-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: uba-backend:scan
+      - name: Trivy fs scan (deps)
+        uses: aquasecurity/trivy-action@0.24.0
+        continue-on-error: true
+        with:
+          scan-type: fs
+          scan-ref: backend
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.24.0
+        continue-on-error: true
+        with:
+          image-ref: uba-backend:scan
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-image.sarif
+      - name: Upload SARIF (Trivy fs)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+      - name: Upload SARIF (Trivy image)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog (filesystem)
+        uses: trufflesecurity/trufflehog@v3.82.6
+        continue-on-error: true
+        with:
+          path: ./
+          base: ""
+          head: HEAD
+          extra_args: --only-verified --json
+
+  create-issue-on-fail:
+    needs: [dependency-audit, sast, container-scan, secrets-scan]
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - name: File issue for HIGH+ findings
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[security] Daily scan flagged HIGH+ issues — ${today}`,
+              body: `Daily security scan run **${context.runId}** has failures.\n\nReview the artifacts in the workflow run:\nhttps://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n**Triage SLA**: 48h for CRITICAL, 7d for HIGH.`,
+              labels: ["security", "automated", "needs-triage"],
+            });
