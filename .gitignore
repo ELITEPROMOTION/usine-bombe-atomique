@@ -52,3 +52,7 @@ build/
 *.pem
 *.key
 secrets/
+
+# Wizard-generated secrets (V5.9)
+deploy/config/
+
