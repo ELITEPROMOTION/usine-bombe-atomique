@@ -24,6 +24,7 @@ from app.routers import (
     osint,
     projects,
     provisioning,
+    quality_gates as quality_gates_router,
     resilience,
     slo,
     tasks,
@@ -100,4 +101,9 @@ app.include_router(intelligence.router, prefix=f"{settings.API_PREFIX}", tags=["
 app.include_router(observability.router, prefix=f"{settings.API_PREFIX}", tags=["observability_v5_9"])
 app.include_router(projects.router, prefix=f"{settings.API_PREFIX}/projects", tags=["projects_v7"])
 app.include_router(osint.router, prefix=f"{settings.API_PREFIX}/osint", tags=["osint_v8"])
+app.include_router(
+    quality_gates_router.router,
+    prefix=f"{settings.API_PREFIX}/projects",
+    tags=["quality_gates_v8_5"],
+)
 app.include_router(websocket.router, tags=["ws"])
