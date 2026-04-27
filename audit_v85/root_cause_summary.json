@@ -1,0 +1,59 @@
+{
+  "audit_version": "v8.5-A",
+  "audited_at": "2026-04-27T00:00:00Z",
+  "subject": {
+    "project_id": "9d20b484-5089-4366-9d6e-d1f37fa45fc4",
+    "sample_path": "generated/dendani-residences",
+    "validation_score_observed": 0.677
+  },
+  "score_breakdown": {
+    "logical_coherence": {"score": 1.0, "weight": 0.20, "contribution": 0.200, "passed": true},
+    "cdc_conformity":    {"score": 1.0, "weight": 0.20, "contribution": 0.200, "passed": true},
+    "quality":           {"score": 0.885, "weight": 0.20, "contribution": 0.177, "passed": true},
+    "tests":             {"score": 0.0, "weight": 0.30, "contribution": 0.000, "passed": false},
+    "production_ready":  {"score": 1.0, "weight": 0.10, "contribution": 0.100, "passed": true}
+  },
+  "root_cause": {
+    "code": "PYTEST_JSON_REPORT_MISSING",
+    "category": "tooling/dependency",
+    "description": "agent-04-pytest invokes `pytest --json-report` but the plugin pytest-json-report is absent from the project venv. Pytest exits with code 4 (unrecognized arguments) before collecting tests. No JSON report is produced; agent reads None, returns score=0, total=0.",
+    "evidence_files": [
+      "backend/app/agents/pytest_agent.py:58-66",
+      "backend/app/agents/claude_code_agent.py:297"
+    ],
+    "reproduction_steps": [
+      "pip uninstall -y pytest-json-report",
+      "cd <generated_project>",
+      "pytest -q --json-report --json-report-file=.pytest_report.json",
+      "Observe: exit 4, error 'unrecognized arguments: --json-report'",
+      "Observe: no .pytest_report.json file created"
+    ],
+    "is_reproducible": true,
+    "blast_radius": "ALL deliverables in template-fallback mode + most Anthropic deliverables"
+  },
+  "fix_strategy": {
+    "approach": "defense_in_depth",
+    "layers": [
+      {"layer": 1, "target": "claude_code_agent._generate_template", "action": "add pytest+pytest-asyncio+pytest-json-report+pytest-cov to requirements.txt"},
+      {"layer": 2, "target": "claude_code_agent.SYSTEM_PROMPT", "action": "explicit dependencies list mandate"},
+      {"layer": 3, "target": "pytest_agent._run_pytest", "action": "fallback to stdout parsing if --json-report fails"},
+      {"layer": 4, "target": "orchestration/quality_gates.py (new)", "action": "6 strict gates blocking delivery"}
+    ]
+  },
+  "validation_pipeline_v2_proposal": {
+    "scale": "0..100",
+    "weights": {
+      "pytest_pass":   {"max": 30, "binary": true},
+      "docker_build":  {"max": 20, "binary": true},
+      "coverage":      {"max": 15, "tiers": [[0.90, 15], [0.80, 12], [0.70, 9], [0.0, 0]]},
+      "lint_clean":    {"max": 15, "tiers": [["0_errors", 15], ["<=5_warn", 10], ["<=20_warn", 5], ["other", 0]]},
+      "readme":        {"max": 10, "tiers": [["complete", 10], ["partial", 5], ["incomplete", 0]]},
+      "smoke_test":    {"max": 10, "binary": true}
+    },
+    "thresholds": {
+      "accepted": 80,
+      "partial": [60, 79],
+      "rejected_auto_regen": "<60"
+    }
+  }
+}

@@ -1,0 +1,200 @@
+                  "content": "",
+                  "end_location": {
+                    "column": 1,
+                    "row": 2
+                  },
+                  "location": {
+                    "column": 1,
+                    "row": 1
+                  }
+                }
+              ],
+              "message": "Remove unused import: `datetime.datetime`"
+            },
+            "location": {
+              "column": 22,
+              "row": 1
+            },
+            "message": "`datetime.datetime` imported but unused",
+            "noqa_row": 1,
+            "url": "https://docs.astral.sh/ruff/rules/unused-import"
+          },
+          {
+            "cell": null,
+            "code": "F401",
+            "end_location": {
+              "column": 36,
+              "row": 5
+            },
+            "filename": "C:\\Users\\BARACHE\\Desktop\\C\\uba\\generated\\dendani-residences\\tests\\conftest.py",
+            "fix": {
+              "applicability": "safe",
+              "edits": [
+                {
+                  "content": "from app.store import store",
+                  "end_location": {
+                    "column": 43,
+                    "row": 5
+                  },
+                  "location": {
+                    "column": 1,
+                    "row": 5
+                  }
+                }
+              ],
+              "message": "Remove unused import: `app.store.InMemoryStore`"
+            },
+            "location": {
+              "column": 23,
+              "row": 5
+            },
+            "message": "`app.store.InMemoryStore` imported but unused",
+            "noqa_row": 5,
+            "url": "https://docs.astral.sh/ruff/rules/unused-import"
+          },
+          {
+            "cell": null,
+            "code": "F401",
+            "end_location": {
+              "column": 14,
+              "row": 1
+            },
+            "filename": "C:\\Users\\BARACHE\\Desktop\\C\\uba\\generated\\dendani-residences\\tests\\test_business_nin.py",
+            "fix": {
+              "applicability": "safe",
+              "edits": [
+                {
+                  "content": "",
+                  "end_location": {
+                    "column": 1,
+                    "row": 2
+                  },
+                  "location": {
+                    "column": 1,
+                    "row": 1
+                  }
+                }
+              ],
+              "message": "Remove unused import: `pytest`"
+            },
+            "location": {
+              "column": 8,
+              "row": 1
+            },
+            "message": "`pytest` imported but unused",
+            "noqa_row": 1,
+            "url": "https://docs.astral.sh/ruff/rules/unused-import"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pytest",
+      "status": "PASS",
+      "score": 1.0,
+      "duration_ms": 4036,
+      "details": {
+        "passed": 46,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "returncode": 0,
+        "stderr_tail": " unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\r\n\r\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\r\n"
+      }
+    },
+    {
+      "name": "coverage",
+      "status": "PASS",
+      "score": 1.0,
+      "duration_ms": 7451,
+      "details": {
+        "percent_covered": 0.9625,
+        "min": 0.7,
+        "target": 0.8
+      }
+    },
+    {
+      "name": "docker_build",
+      "status": "SKIP",
+      "score": 0.0,
+      "duration_ms": 0,
+      "details": {
+        "reason": "docker binary unavailable"
+      }
+    },
+    {
+      "name": "docker_run",
+      "status": "SKIP",
+      "score": 0.0,
+      "duration_ms": 0,
+      "details": {
+        "reason": "docker binary unavailable"
+      }
+    },
+    {
+      "name": "readme",
+      "status": "FAIL",
+      "score": 0.383,
+      "duration_ms": 1,
+      "details": {
+        "present": [
+          "installation",
+          "tests"
+        ],
+        "missing": [
+          "description",
+          "usage",
+          "deploy",
+          "license"
+        ],
+        "has_curl_example": true,
+        "has_env_doc": false
+      }
+    }
+  ],
+  "overall_status": "FAIL",
+  "summary": "2/6 PASS (2 FAIL, 2 SKIP)",
+  "breakdown": {
+    "scale": 100,
+    "decision": "ACCEPTED",
+    "total": 55,
+    "components": {
+      "pytest_pass": {
+        "score": 30,
+        "max": 30
+      },
+      "docker_build": {
+        "score": 0,
+        "max": 20
+      },
+      "coverage": {
+        "score": 15,
+        "max": 15
+      },
+      "lint_clean": {
+        "score": 10,
+        "max": 15
+      },
+      "readme": {
+        "score": 0,
+        "max": 10
+      },
+      "smoke_test": {
+        "score": 0,
+        "max": 10
+      }
+    },
+    "rationale": [
+      "pytest: ALL PASS",
+      "coverage: 96.2% >= 90%",
+      "lint: 3 warnings (<=5)",
+      "docker: SKIP (no docker binary; not penalized in summary)",
+      "smoke: SKIP (docker absent)",
+      "readme: 2/6 sections (FAIL)"
+    ],
+    "thresholds": {
+      "accepted": 80,
+      "partial": 60
+    }
+  }
+}

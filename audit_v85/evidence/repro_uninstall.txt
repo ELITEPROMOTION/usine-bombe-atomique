@@ -1,0 +1,21 @@
+$ cd generated/dendani-residences/
+$ python -m pip uninstall -y -q pytest-json-report
+$ rm -f .pytest_report.json
+$ python -m pytest -q --json-report --json-report-file=.pytest_report.json --no-header
+ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]
+__main__.py: error: unrecognized arguments: --json-report --json-report-file=.pytest_report.json
+  inifile: None
+  rootdir: C:\Users\BARACHE\Desktop\C\uba\generated\dendani-residences
+
+$ echo "exit code: $?"
+exit code: 4
+
+$ ls .pytest_report.json
+ls: cannot access '.pytest_report.json': No such file or directory
+
+# Conséquence agent-04-pytest :
+# - report_path n'existe pas
+# - _load_report retourne None
+# - summary = {} ; total=0, passed=0, collected=0
+# - branche `if total == 0 and collected == 0:` → score=0.0, ok=False
+# AGENT-VIEW: score=0.000 total=0 passed=0 failed=0 errors=0 ok=False

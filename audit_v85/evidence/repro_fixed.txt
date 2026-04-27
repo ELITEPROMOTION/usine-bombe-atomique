@@ -1,0 +1,18 @@
+$ cd generated/dendani-residences/
+$ python -m pip install -q pytest-json-report
+$ rm -f .pytest_report.json
+$ pytest "$(pwd)" -q --json-report --json-report-file=.pytest_report.json --no-header
+..............................................                              [100%]
+46 passed, 1 warning in 0.53s
+
+$ python - <<'PY'
+import json
+r = json.load(open('.pytest_report.json'))
+s = r['summary']
+total, passed, failed, errors = s['total'], s['passed'], s.get('failed',0), s.get('error',0)
+score = passed / max(total, 1)
+ok = score >= 0.90 and failed == 0 and errors == 0
+print(f"AGENT-VIEW: score={score:.3f} total={total} passed={passed} failed={failed} errors={errors} ok={ok}")
+PY
+
+AGENT-VIEW: score=1.000 total=46 passed=46 failed=0 errors=0 ok=True
