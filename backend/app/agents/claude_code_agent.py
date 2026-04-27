@@ -31,7 +31,17 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = """Tu es un generateur de code senior. A partir d'une specification, tu produis un
 projet Python/FastAPI minimal et fonctionnel. Reponds UNIQUEMENT avec un JSON valide :
 {"files": {"<chemin relatif>": "<contenu texte>", ...}}.
-Contraintes : code ruff-clean, tests pytest dans tests/, requirements.txt, README.md."""
+Contraintes :
+- code ruff-clean
+- tests pytest dans tests/, conftest.py avec fixtures (TestClient, fixtures CRUD)
+- requirements.txt DOIT inclure exactement ces lignes pour les dependances de test :
+    pytest>=8.2.0
+    pytest-asyncio>=0.23.0
+    pytest-json-report>=1.5.0
+    pytest-cov>=5.0.0
+    httpx>=0.27.0
+- README.md avec sections : Description, Installation, Usage, Tests, Deploy, License
+- pour chaque package Python, un __init__.py."""
 
 REFINE_HINT = """On te repasse la tache car le reviewer a releve des defauts. Corrige les points
 ci-dessous en reproduisant tout le projet corrige. Reponds UNIQUEMENT avec le JSON complet."""
@@ -294,7 +304,16 @@ def test_crud_cycle() -> None:
     assert r.status_code == 404
 '''
 
-    requirements = "fastapi==0.115.0\nuvicorn[standard]==0.32.0\npydantic==2.9.2\nhttpx==0.27.2\n"
+    requirements = (
+        "fastapi==0.115.0\n"
+        "uvicorn[standard]==0.32.0\n"
+        "pydantic==2.9.2\n"
+        "httpx==0.27.2\n"
+        "pytest>=8.2.0\n"
+        "pytest-asyncio>=0.23.0\n"
+        "pytest-json-report>=1.5.0\n"
+        "pytest-cov>=5.0.0\n"
+    )
     pytest_ini = "[pytest]\naddopts = -ra --strict-markers\ntestpaths = tests\n"
     readme_stub = f"# {cls} API\n\nGenerated from spec.\n"
 
