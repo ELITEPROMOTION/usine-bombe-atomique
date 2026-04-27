@@ -35,6 +35,11 @@ from app.orchestration.memory_engine import (
     sanitize_spec,
     update_agent_benchmark,
 )
+from app.orchestration.quality_gates import (
+    QualityGatesEngine,
+    persist_results as persist_gates_results,
+)
+from app.orchestration.validation_score_v2 import compute_breakdown
 from app.orchestrator import OrchestrationResult, run_dag
 from app.validation.level_zero import validate as validate_level_zero
 from app.validation.pipeline import LEVEL_NAMES, PipelineResult, run_pipeline
@@ -305,6 +310,127 @@ async def _run_decision_router_and_promotion(
     return route, promotion_trace
 
 
+async def _run_quality_gates_v8_5(
+    pool: Any,
+    task_id: str,
+    workspace: Workspace,
+) -> dict[str, Any] | None:
+    """V8.5F : execute les 6 quality gates, calcule le breakdown 100 pts,
+    persiste dans delivery_quality_gates + tasks.validation_breakdown_json.
+
+    Defensif : si tout casse, on log et on retourne None — on ne bloque pas
+    le pipeline existant (decision_router continuera avec le verdict V1).
+    """
+    try:
+        engine = QualityGatesEngine(pytest_timeout_s=120)
+        async with pool.acquire() as conn:
+            attempt = await conn.fetchval(
+                """
+                UPDATE tasks
+                   SET validation_attempts = COALESCE(validation_attempts, 0) + 1
+                 WHERE id = $1
+             RETURNING validation_attempts
+                """,
+                UUID(task_id),
+            )
+        attempt_number = int(attempt or 1)
+
+        gates_result = await engine.validate_deliverable(
+            workspace.root, project_id=task_id,
+        )
+        await persist_gates_results(pool, task_id, attempt_number, gates_result)
+
+        breakdown = compute_breakdown(gates_result)
+        breakdown_dict = breakdown.to_dict()
+
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE tasks
+                   SET validation_breakdown_json = $2::jsonb,
+                       validation_decision = $3,
+                       quality_gates_history_json = COALESCE(
+                           quality_gates_history_json, '[]'::jsonb
+                       ) || $4::jsonb
+                 WHERE id = $1
+                """,
+                UUID(task_id),
+                json.dumps(breakdown_dict),
+                breakdown.decision,
+                json.dumps([{
+                    "attempt": attempt_number,
+                    "overall": gates_result.overall_status,
+                    "summary": gates_result.summary,
+                    "decision": breakdown.decision,
+                    "total": breakdown.total,
+                }]),
+            )
+
+        if breakdown.decision != "REJECTED":
+            try:
+                await QualityGatesEngine.mark_fixed(pool, task_id, attempt_number)
+            except Exception as exc:
+                logger.warning("mark_failures_fixed failed: %s", exc)
+
+        logger.info(
+            "v8.5F gates : decision=%s total=%d attempt=%d %s",
+            breakdown.decision, breakdown.total, attempt_number,
+            gates_result.summary,
+        )
+        return {
+            "attempt_number": attempt_number,
+            "decision": breakdown.decision,
+            "total": breakdown.total,
+            "overall_status": gates_result.overall_status,
+            "breakdown": breakdown_dict,
+        }
+    except Exception as exc:  # noqa: BLE001 — defensif, on ne bloque pas
+        logger.warning("quality_gates_v8_5 failed (non-blocking): %s", exc)
+        return None
+
+
+async def _maybe_reenqueue_for_regen(
+    task_id: str,
+    gates_summary: dict[str, Any] | None,
+) -> bool:
+    """V8.5F : re-enqueue auto si REJECTED et attempts < 3.
+
+    Retourne True si une re-execution a ete enqueuee.
+    """
+    if not gates_summary or gates_summary.get("decision") != "REJECTED":
+        return False
+    attempt = int(gates_summary.get("attempt_number", 0))
+    if attempt >= 3:
+        logger.warning(
+            "v8.5F regen : task=%s exhausted (%d attempts) — keeping REJECTED",
+            task_id, attempt,
+        )
+        return False
+
+    try:
+        from arq.connections import RedisSettings, create_pool
+        redis = await create_pool(RedisSettings(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            password=settings.REDIS_PASSWORD or None,
+            database=settings.REDIS_DB,
+        ))
+        try:
+            await redis.enqueue_job(
+                "run_task", str(task_id),
+                _queue_name="uba:run_task",
+                _job_id=f"regen-{task_id}-{attempt + 1}",
+            )
+        finally:
+            await redis.aclose()
+        logger.info("v8.5F regen : re-enqueued task=%s next_attempt=%d",
+                    task_id, attempt + 1)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("v8.5F regen enqueue failed: %s", exc)
+        return False
+
+
 # --------------------------------------------------------------------------- run_task
 
 async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
@@ -357,6 +483,10 @@ async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
         pool, task_id, pipeline_result, confidence, orchestration, artifact_version,
     )
 
+    # 7. V8.5F : 6 quality gates + breakdown 100 pts + auto-regen si REJECTED
+    gates_summary = await _run_quality_gates_v8_5(pool, task_id, workspace)
+    regen_enqueued = await _maybe_reenqueue_for_regen(task_id, gates_summary)
+
     return {
         "task_id": task_id,
         "verdict": pipeline_result.verdict,
@@ -369,6 +499,8 @@ async def run_task(_ctx: dict[str, Any], task_id: str) -> dict[str, Any]:
         "thresholds_used": thresholds.to_dict(),
         "router": route.to_dict() if route else None,
         "promotion": promotion_trace,
+        "quality_gates_v8_5": gates_summary,
+        "regen_enqueued": regen_enqueued,
     }
 
 

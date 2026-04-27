@@ -5,6 +5,7 @@ GET /api/v1/projects/{id}/validation     - breakdown detaille du validation_scor
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import UUID
 
@@ -14,6 +15,18 @@ from pydantic import BaseModel
 from app.database import get_pool
 
 router = APIRouter()
+
+
+def _coerce_jsonb(value: Any) -> Any:
+    """asyncpg renvoie JSONB en str par defaut — decode si besoin."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return None
+    return value
 
 
 class GateRow(BaseModel):
@@ -69,7 +82,7 @@ async def get_quality_gates_history(project_id: UUID) -> GatesHistoryResponse:
             status=r["status"],
             score=float(r["score"]) if r["score"] is not None else None,
             duration_ms=r["duration_ms"],
-            details=r["details"] or {},
+            details=_coerce_jsonb(r["details"]) or {},
             checked_at=r["checked_at"].isoformat(),
         )
         for r in rows
@@ -97,7 +110,7 @@ async def get_validation_breakdown(project_id: UUID) -> ValidationBreakdownRespo
     if not row:
         raise HTTPException(404, "Project not found")
 
-    breakdown = row["validation_breakdown_json"] or {}
+    breakdown = _coerce_jsonb(row["validation_breakdown_json"]) or {}
     return ValidationBreakdownResponse(
         project_id=str(project_id),
         decision=row["validation_decision"],

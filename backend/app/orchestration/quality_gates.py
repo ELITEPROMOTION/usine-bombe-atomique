@@ -128,6 +128,45 @@ async def validate_deliverable(
 
 
 # ---------------------------------------------------------------------------
+# Compat class wrapper (V8.5C spec)
+# ---------------------------------------------------------------------------
+
+
+class QualityGatesEngine:
+    """Wrapper class autour de validate_deliverable() — interface stable
+    pour les autres modules (delivery_package, worker)."""
+
+    def __init__(self, *, pytest_timeout_s: int = 120) -> None:
+        self.pytest_timeout_s = pytest_timeout_s
+
+    async def validate_deliverable(
+        self,
+        project_path: Path | str,
+        project_id: str | None = None,  # noqa: ARG002 (kept for API stability)
+        *,
+        docker_available: bool | None = None,
+    ) -> GatesResult:
+        return await validate_deliverable(
+            Path(project_path),
+            docker_available=docker_available,
+            pytest_timeout_s=self.pytest_timeout_s,
+        )
+
+    @staticmethod
+    async def persist(
+        pool: Any,
+        project_id: str,
+        attempt_number: int,
+        result: GatesResult,
+    ) -> None:
+        await persist_results(pool, project_id, attempt_number, result)
+
+    @staticmethod
+    async def mark_fixed(pool: Any, project_id: str, attempt_number: int) -> int:
+        return await mark_failures_fixed(pool, project_id, attempt_number)
+
+
+# ---------------------------------------------------------------------------
 # Gate implementations
 # ---------------------------------------------------------------------------
 

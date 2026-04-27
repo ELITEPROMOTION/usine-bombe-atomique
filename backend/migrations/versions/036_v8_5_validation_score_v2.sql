@@ -64,7 +64,7 @@ BEGIN
     INSERT INTO evidence_ledger (actor, kind, payload_hash, prev_hash, chain_hash, payload_json)
     VALUES (
         'migration_036_v8_5d',
-        'feature',
+        'repair',
         new_payload_hash,
         last_chain_hash,
         new_chain_hash,

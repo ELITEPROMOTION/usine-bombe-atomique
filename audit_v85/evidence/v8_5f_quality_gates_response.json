@@ -1,0 +1,255 @@
+{
+    "project_id": "07f7f08c-e9de-4883-9272-975a0247af18",
+    "total_attempts": 3,
+    "gates": [
+        {
+            "attempt_number": 1,
+            "gate_name": "lint",
+            "status": "PASS",
+            "score": 1.0,
+            "duration_ms": 19,
+            "details": {
+                "errors": 0,
+                "sample": []
+            },
+            "checked_at": "2026-04-27T23:07:33.435136+00:00"
+        },
+        {
+            "attempt_number": 1,
+            "gate_name": "pytest",
+            "status": "FAIL",
+            "score": 0.0,
+            "duration_ms": 3476,
+            "details": {
+                "errors": 0,
+                "failed": 0,
+                "passed": 0,
+                "reason": "no tests collected (rc=4)",
+                "skipped": 0
+            },
+            "checked_at": "2026-04-27T23:07:33.444371+00:00"
+        },
+        {
+            "attempt_number": 1,
+            "gate_name": "coverage",
+            "status": "FAIL",
+            "score": 0.0,
+            "duration_ms": 4921,
+            "details": {
+                "reason": "coverage extraction failed (rc=4)",
+                "stderr_tail": "e\napp/store.py:7: in <module>\n    class ProductStore:\napp/store.py:47: in ProductStore\n    def by_category(self, category: str) -> list[Product]:\nE   TypeError: 'function' object is not subscriptable\n"
+            },
+            "checked_at": "2026-04-27T23:07:33.453958+00:00"
+        },
+        {
+            "attempt_number": 1,
+            "gate_name": "docker_build",
+            "status": "SKIP",
+            "score": 0.0,
+            "duration_ms": 0,
+            "details": {
+                "reason": "docker binary unavailable"
+            },
+            "checked_at": "2026-04-27T23:07:33.460466+00:00"
+        },
+        {
+            "attempt_number": 1,
+            "gate_name": "docker_run",
+            "status": "SKIP",
+            "score": 0.0,
+            "duration_ms": 0,
+            "details": {
+                "reason": "docker binary unavailable"
+            },
+            "checked_at": "2026-04-27T23:07:33.462878+00:00"
+        },
+        {
+            "attempt_number": 1,
+            "gate_name": "readme",
+            "status": "FAIL",
+            "score": 0.383,
+            "duration_ms": 1,
+            "details": {
+                "missing": [
+                    "description",
+                    "usage",
+                    "deploy",
+                    "license"
+                ],
+                "present": [
+                    "installation",
+                    "tests"
+                ],
+                "has_env_doc": true,
+                "has_curl_example": false
+            },
+            "checked_at": "2026-04-27T23:07:33.465467+00:00"
+        },
+        {
+            "attempt_number": 2,
+            "gate_name": "lint",
+            "status": "PASS",
+            "score": 1.0,
+            "duration_ms": 19,
+            "details": {
+                "errors": 0,
+                "sample": []
+            },
+            "checked_at": "2026-04-27T23:08:48.352212+00:00"
+        },
+        {
+            "attempt_number": 2,
+            "gate_name": "pytest",
+            "status": "FAIL",
+            "score": 0.0,
+            "duration_ms": 5155,
+            "details": {
+                "errors": 0,
+                "failed": 0,
+                "passed": 0,
+                "reason": "no tests collected (rc=4)",
+                "skipped": 0
+            },
+            "checked_at": "2026-04-27T23:08:48.356288+00:00"
+        },
+        {
+            "attempt_number": 2,
+            "gate_name": "coverage",
+            "status": "FAIL",
+            "score": 0.0,
+            "duration_ms": 5270,
+            "details": {
+                "reason": "coverage extraction failed (rc=4)",
+                "stderr_tail": " route_class(\n/usr/local/lib/python3.12/site-packages/fastapi/routing.py:507: in __init__\n    assert is_body_allowed_for_status_code(\nE   AssertionError: Status code 204 must not have a response body\n"
+            },
+            "checked_at": "2026-04-27T23:08:48.365461+00:00"
+        },
+        {
+            "attempt_number": 2,
+            "gate_name": "docker_build",
+            "status": "SKIP",
+            "score": 0.0,
+            "duration_ms": 0,
+            "details": {
+                "reason": "docker binary unavailable"
+            },
+            "checked_at": "2026-04-27T23:08:48.371703+00:00"
+        },
+        {
+            "attempt_number": 2,
+            "gate_name": "docker_run",
+            "status": "SKIP",
+            "score": 0.0,
+            "duration_ms": 0,
+            "details": {
+                "reason": "docker binary unavailable"
+            },
+            "checked_at": "2026-04-27T23:08:48.376264+00:00"
+        },
+        {
+            "attempt_number": 2,
+            "gate_name": "readme",
+            "status": "FAIL",
+            "score": 0.383,
+            "duration_ms": 0,
+            "details": {
+                "missing": [
+                    "description",
+                    "usage",
+                    "deploy",
+                    "license"
+                ],
+                "present": [
+                    "installation",
+                    "tests"
+                ],
+                "has_env_doc": true,
+                "has_curl_example": false
+            },
+            "checked_at": "2026-04-27T23:08:48.380174+00:00"
+        },
+        {
+            "attempt_number": 3,
+            "gate_name": "lint",
+            "status": "PASS",
+            "score": 1.0,
+            "duration_ms": 25,
+            "details": {
+                "errors": 0,
+                "sample": []
+            },
+            "checked_at": "2026-04-27T23:09:59.332365+00:00"
+        },
+        {
+            "attempt_number": 3,
+            "gate_name": "pytest",
+            "status": "FAIL",
+            "score": 0.0,
+            "duration_ms": 4779,
+            "details": {
+                "errors": 0,
+                "failed": 0,
+                "passed": 0,
+                "reason": "no tests collected (rc=4)",
+                "skipped": 0
+            },
+            "checked_at": "2026-04-27T23:09:59.337837+00:00"
+        },
+        {
+            "attempt_number": 3,
+            "gate_name": "coverage",
+            "status": "FAIL",
+            "score": 0.0,
+            "duration_ms": 4932,
+            "details": {
+                "reason": "coverage extraction failed (rc=4)",
+                "stderr_tail": " route_class(\n/usr/local/lib/python3.12/site-packages/fastapi/routing.py:507: in __init__\n    assert is_body_allowed_for_status_code(\nE   AssertionError: Status code 204 must not have a response body\n"
+            },
+            "checked_at": "2026-04-27T23:09:59.346913+00:00"
+        },
+        {
+            "attempt_number": 3,
+            "gate_name": "docker_build",
+            "status": "SKIP",
+            "score": 0.0,
+            "duration_ms": 0,
+            "details": {
+                "reason": "docker binary unavailable"
+            },
+            "checked_at": "2026-04-27T23:09:59.353784+00:00"
+        },
+        {
+            "attempt_number": 3,
+            "gate_name": "docker_run",
+            "status": "SKIP",
+            "score": 0.0,
+            "duration_ms": 0,
+            "details": {
+                "reason": "docker binary unavailable"
+            },
+            "checked_at": "2026-04-27T23:09:59.358751+00:00"
+        },
+        {
+            "attempt_number": 3,
+            "gate_name": "readme",
+            "status": "FAIL",
+            "score": 0.383,
+            "duration_ms": 0,
+            "details": {
+                "missing": [
+                    "description",
+                    "usage",
+                    "deploy",
+                    "license"
+                ],
+                "present": [
+                    "installation",
+                    "tests"
+                ],
+                "has_env_doc": true,
+                "has_curl_example": false
+            },
+            "checked_at": "2026-04-27T23:09:59.362384+00:00"
+        }
+    ]
+}

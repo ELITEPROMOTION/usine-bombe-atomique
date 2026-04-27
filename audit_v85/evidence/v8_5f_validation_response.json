@@ -1,0 +1,45 @@
+{
+    "project_id": "07f7f08c-e9de-4883-9272-975a0247af18",
+    "decision": "REJECTED",
+    "total": 15,
+    "scale": 100,
+    "components": {
+        "readme": {
+            "max": 10,
+            "score": 0
+        },
+        "coverage": {
+            "max": 15,
+            "score": 0
+        },
+        "lint_clean": {
+            "max": 15,
+            "score": 15
+        },
+        "smoke_test": {
+            "max": 10,
+            "score": 0
+        },
+        "pytest_pass": {
+            "max": 30,
+            "score": 0
+        },
+        "docker_build": {
+            "max": 20,
+            "score": 0
+        }
+    },
+    "rationale": [
+        "pytest: no tests collected (rc=4)",
+        "coverage: 0.0% < 70% (FAIL)",
+        "lint: 0 errors (PASS)",
+        "docker: SKIP (no docker binary; not penalized in summary)",
+        "smoke: SKIP (docker absent)",
+        "readme: 2/6 sections (FAIL)"
+    ],
+    "attempts": 3,
+    "thresholds": {
+        "partial": 60,
+        "accepted": 80
+    }
+}
