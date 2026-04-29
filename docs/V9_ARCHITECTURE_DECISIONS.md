@@ -150,3 +150,74 @@ Phase 9I).
 
 **Conséquences** : pas de switch de langue requis. La doc utilisateur finale
 (22 docs Phase 9S) sera multilingue.
+
+---
+
+## ADR-07 — Tokens random + DB-lookup plutôt que JWT/HMAC stateless
+
+**Date** : 2026-04-29 (Phase 9A)
+
+**Contexte** : Phase 9A doit émettre des liens d'action (KYC, paiement,
+download). Deux stratégies possibles :
+
+1. **Token aléatoire + lookup DB** (`secrets.token_urlsafe(32)`, hash SHA-256
+   stocké, validation = SELECT). Coût : 1 query par validation.
+2. **JWT/HMAC signé** (payload base64 + signature HMAC-SHA256). Coût : 0 query
+   pour valider, mais nécessite gestion de clé + rotation + révocation
+   externe (blacklist Redis).
+
+**Décision** : option **1** (random + DB-lookup).
+
+**Justifications** :
+- **Cohérence** avec Phase 9-BOOT (`handoff_kyc_orchestrator` utilise déjà
+  `secrets.token_urlsafe(32)` + lookup `handoff_pending.magic_link_token`).
+- **Révocation immédiate** : un `UPDATE direct_links SET revoked_at = NOW()`
+  est instantanément effectif. Avec JWT, il faut un mécanisme de blacklist.
+- **Pas de gestion de clé de signature** : `VAULT_ENVELOPE_KEY` (Phase 9-BOOT)
+  reste réservé à l'enveloppe de secrets longue-durée, pas aux tokens
+  éphémères qui peuvent rester en DB.
+- **Performance acceptable** : la table `direct_links` est indexée sur
+  `token_hash` (UNIQUE), 1 query = ~1ms. Pas un goulot pour notre charge.
+- **Sécurité égale** : 256 bits d'entropie = équivalent crypto à un JWT signé.
+
+**Conséquences** :
+- Chaque validation = 1 SELECT + 1 INSERT audit. Si la charge devient
+  critique (>1000 RPS soutenu), envisager un cache Redis read-through ou
+  passer à HMAC.
+- Le SHA-256 du token est stocké en DB ; le token brut quitte le serveur
+  uniquement dans l'URL et n'est jamais re-écrit ailleurs.
+- Pas d'incompatibilité avec un futur passage à JWT — le `token_hash` peut
+  cohabiter avec un format `<jwt>.<sig>` côté client.
+
+---
+
+## ADR-08 — `handoff_pending` reste séparé de `direct_links`
+
+**Date** : 2026-04-29 (Phase 9A)
+
+**Contexte** : Phase 9-BOOT a créé `handoff_pending` (avec `magic_link_token`)
+pour les KYC/card. Phase 9A introduit `direct_links` qui pourrait
+techniquement absorber ces tokens.
+
+**Décision** : conserver `handoff_pending` distinct de `direct_links`.
+
+**Justifications** :
+- **Sémantiques différentes** : `handoff_pending` modélise un *état métier*
+  (pause/resume du pipeline, schedule de relances 1h/12h/24h, escalation
+  Slack). `direct_links` modélise une *primitive de sécurité* (token,
+  validation, audit).
+- **Une refonte rétrocompatible** sera faite en **Phase 9P** : `handoff_pending`
+  conservera son rôle, mais `magic_link_token` deviendra une référence
+  (`link_id` UUID) vers une entrée `direct_links`. Cela découple « état du
+  handoff » de « token cryptographique ».
+- **Risque de régression** : tenter la fusion en 9A casserait les tests
+  9-BOOT et l'orchestrateur d'`account_creator`. Garder l'isolement entre
+  phases protège la non-régression.
+
+**Conséquences** :
+- Phase 9P (« injection liens directs livrables ») devra créer une
+  migration qui ajoute `handoff_pending.direct_link_id UUID FK → direct_links.link_id`,
+  backfille à partir des magic_link_token existants, puis nettoie la
+  colonne magic_link_token quand tout est migré.
+- D'ici là, deux tables coexistent. Pas de duplication des données : les
+  tokens 9-BOOT ne sont pas dans `direct_links`.
