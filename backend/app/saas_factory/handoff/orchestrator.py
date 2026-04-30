@@ -156,7 +156,7 @@ class HandoffOrchestrator:
                 project_id, action_type, target_email, locale,
                 link.link_id,
                 json.dumps(meta, sort_keys=True, ensure_ascii=False, default=str),
-                card.title, card.body, link.url,
+                card.title, card.description, link.url,
                 link.expires_at,
             )
             handoff_id: UUID = row["handoff_id"]
@@ -183,7 +183,7 @@ class HandoffOrchestrator:
             issued_token=link.token,
             cta_url=link.url,
             title=card.title,
-            body=card.body,
+            body=card.description,
             expires_at=link.expires_at,
             created_at=row["created_at"],
         )
