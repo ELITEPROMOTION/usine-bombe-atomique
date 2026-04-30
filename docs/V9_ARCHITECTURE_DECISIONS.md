@@ -620,3 +620,73 @@ Trois options pour 9N :
   token a fait quoi en cas de fuite.
 - Limitation acceptée : 1 seul admin (`admin_id='ahmed'`), pas de scopes
   granulaires. Suffit pour la V9 mono-admin.
+
+---
+
+## ADR-18 — HostingerClient : `_do_request` no-cover + 3 garde-fous (Pydantic + payment_id + live gate)
+
+**Date** : 2026-04-30 (Phase 9G)
+
+**Contexte** : Phase 9G doit construire l'intégration Hostinger
+(achat domaine, création VPS, SSL, backups). Les achats domaine et la
+création VPS sont **facturables** et **irréversibles** (un domaine acheté
+n'est pas remboursable). Les standing instructions interdisent ces
+opérations en mode autonome.
+
+Plusieurs questions à trancher :
+
+1. Comment garantir qu'aucun appel facturable n'est émis pendant les tests ?
+2. Comment empêcher un bug applicatif de déclencher un achat sans paiement ?
+3. Comment couvrir le code production-ready quand on ne peut pas appeler
+   l'API réelle ?
+
+**Décision** : trois couches de garde-fou + pattern `_do_request` no-cover :
+
+**Couche 1 — Pydantic** : `DomainPurchaseRequest.payment_id =
+Field(min_length=8, max_length=120)` et idem pour `VPSCreateRequest`. Un
+appel sans payment_id (ou avec un payment_id trop court) est rejeté avant
+même d'atteindre la logique métier.
+
+**Couche 2 — `require_payment_id()`** : helper appelé en début de chaque
+méthode facturable (`domain_manager.purchase`, `vps_provisioner.
+create_instance`). Lève `PaymentIdRequiredError` si manquant. Double
+validation explicite avec un message clair (l'opération est nommée).
+
+**Couche 3 — Live gate `UBA_LIVE_HOSTINGER`** : dans
+`HostingerClient.request()`, si `require_live=True` (défaut) et que
+l'env var n'est pas `1`, on lève `HostingerLiveDisabledError` AVANT
+tout appel réseau. Mode fail-closed.
+
+**Pattern `_do_request` no-cover** : la méthode publique `request()` fait
+les checks (gate live, headers, validation), puis délègue à
+`_do_request()` qui est le seul endroit où `httpx.AsyncClient` est
+appelé. `_do_request` est marqué `# pragma: no cover - integration only`.
+
+**Justifications** :
+- 3 couches superposées rendent **impossible** un appel facturable
+  par accident :
+  - Bug Pydantic ? La couche 2 catch.
+  - Bug Pydantic + helper ? La couche 3 (live gate) catch.
+  - Live gate désactivée par mégarde ? Pas de payment_id → fail-fast.
+- `_do_request` no-cover évite de mocker httpx dans les tests
+  unitaires (effort sans valeur ajoutée). Les tests d'intégration live
+  (derrière feature flag `UBA_LIVE_HOSTINGER=1` + GO Ahmed) couvriront
+  ces paths quand on validera la prod.
+- Coverage cumulée à 98% reste atteinte malgré le no-cover, car le code
+  applicatif au-dessus de `_do_request` (auth headers, gate live, parse
+  JSON) est testé via le stub.
+
+**Conséquences** :
+- Pour activer le mode live, Ahmed doit :
+  1. Vérifier que `HOSTINGER_API_TOKEN` est valide (déjà dans `.env`)
+  2. Tester en read-only (`search`, `list_plans`) — gratuit
+  3. Pour le 1er achat : `export UBA_LIVE_HOSTINGER=1` + GO explicite à
+     l'orchestrateur, avec un payment_id valide issu de Phase 9H.
+- **Ne jamais commit `UBA_LIVE_HOSTINGER=1`** dans CI/CD. La gate doit
+  rester un opt-in manuel par environnement.
+- En production, un test périodique pourrait échantillonner
+  `HostingerClient.request("GET", "/health", require_live=True)` pour
+  s'assurer que la connectivité fonctionne — sans coût réel.
+- Migration future : ajouter une FK
+  `hostinger_resources.payment_id → payments.payment_id` quand Phase 9H
+  créera la table `payments`. Reportée en Phase 9P (cohérence avec ADR-15).
