@@ -574,3 +574,49 @@ Trois options :
 - Une 7ème étape « payment_method » pourrait être ajoutée plus tard
   pour pré-remplir le checkout Stripe (Phase 9H), mais on garde 6 pour
   l'instant — c'est cohérent avec le master plan.
+
+---
+
+## ADR-17 — Auth admin token-based (stopgap V9N) plutôt que JWT/RBAC complet
+
+**Date** : 2026-04-30 (Phase 9N)
+
+**Contexte** : Phase 9N expose `/admin/*` — endpoints qui peuvent muter
+des états critiques (cost limits, project status, handoff cancel,
+direct_link revoke, router policy). Il faut une auth, mais Phase 9J
+(« Sécurité Enterprise », 5h) est l'endroit prévu pour le RBAC complet.
+
+Trois options pour 9N :
+
+1. **Pas d'auth** (placeholder, à câbler en 9J).
+2. **JWT + role check** maintenant (anticipe 9J).
+3. **Token statique** lu depuis env `UBA_ADMIN_TOKEN` (stopgap).
+
+**Décision** : option **3** (stopgap).
+
+**Justifications** :
+- Option 1 (pas d'auth) est dangereuse même en dev — quelqu'un pourrait
+  hit `POST /admin/projects/{id}/status` par accident.
+- Option 2 (JWT/RBAC) duplique l'effort de 9J. Le système d'auth existant
+  dans `app/routers/auth.py` est marqué « stub Bootstrap — à durcir »
+  donc s'appuyer dessus serait construire sur du sable.
+- Option 3 est minimal mais sûr :
+  - `secrets.compare_digest()` empêche les timing attacks
+  - Si `UBA_ADMIN_TOKEN` n'est pas définie → 503 (refuse TOUT, mode
+    fail-closed)
+  - Token comparison à chaque requête (pas de cache) → rotation immédiate
+  - `token_hint` (4 derniers chars) journalisé pour traçabilité, jamais
+    le brut
+
+**Conséquences** :
+- Phase 9J devra remplacer `get_current_admin` par un check `JWT.role
+  == 'admin'` ou équivalent. Les routers existants ne changeront pas
+  (juste la dépendance).
+- L'admin token doit être généré par Ahmed (e.g. `openssl rand -hex 32`)
+  et placé dans `.env` avec rotation manuelle.
+- Pour les tests, on override `get_current_admin` via
+  `app.dependency_overrides` — agnostique à l'implémentation interne.
+- Audit trail (`admin_actions.token_hint`) permet de reconstituer quel
+  token a fait quoi en cas de fuite.
+- Limitation acceptée : 1 seul admin (`admin_id='ahmed'`), pas de scopes
+  granulaires. Suffit pour la V9 mono-admin.
