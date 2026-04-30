@@ -221,3 +221,87 @@ techniquement absorber ces tokens.
   colonne magic_link_token quand tout est migré.
 - D'ici là, deux tables coexistent. Pas de duplication des données : les
   tokens 9-BOOT ne sont pas dans `direct_links`.
+
+---
+
+## ADR-09 — Découpage du Setup Wizard en 4 étapes (Brand / Pricing / Catalog / Ops)
+
+**Date** : 2026-04-30 (Phase 9B)
+
+**Contexte** : le master plan V9 indiquait « Phase 9B : Setup Wizard Ahmed
+4 étapes (4h) » sans détailler lesquelles. Une décision architecturale
+nécessaire pour avancer en autonome.
+
+**Décision** : 4 étapes séquentielles dans cet ordre :
+
+1. `brand_identity` — platform_name, logo_url, primary_color, support_email,
+   default_locale, default_timezone, default_currency
+2. `pricing_baseline` — base_currency, minimum_margin_pct (≥ 50% per CDC),
+   default_vat_pct, 15 coefficients (préparation Phase 9C)
+3. `service_catalog` — enabled_packs (subset de 9 packs : E-Commerce S/M/L,
+   SaaS S/M/L, Mobile, API B2B, Custom), featured_pack, accept_custom_briefs
+4. `operations_defaults` — hostinger_default_plan (kvm1/2/4/8),
+   backup_retention_days (7-365), refund_sla_hours (1-168), AI router split
+   Claude/Perplexity/Manus/Internal (somme = 100%)
+
+**Justifications** :
+- **Dépendance logique** : identité → prix → offre → exécution. Pas de
+  référence forward dans aucune étape.
+- **15 coefficients** : explicite dans le brief (master plan #8). Listés
+  dans `COEFFICIENT_KEYS` avec validation Pydantic stricte (set requis,
+  pas de doublon).
+- **Marge ≥ 50%** : explicite dans le brief (master plan « marge >= 50% »).
+  Encodé en `Field(ge=MIN_MARGIN_PCT=50)` non-modifiable côté UI.
+- **AI router somme à 100** : prépare la Phase 9D (`AI Router` master plan
+  #16 : « Claude 80% / Perplexity 15% / Manus 5% / Internal V8.5 ») avec
+  un model_validator strict.
+
+**Conséquences** :
+- Phases dépendantes :
+  - 9C lit `platform_config.pricing_json` pour `pricing_engine`.
+  - 9D lit `platform_config.operations_json.ai_router_*` pour le routeur.
+  - 9G lit `platform_config.operations_json.hostinger_default_plan`.
+  - 9N (dashboard admin) implémentera l'UI du wizard.
+- Si plus tard une 5ème étape devient nécessaire (e.g. « Compliance
+  defaults »), elle peut être ajoutée à `WIZARD_STEP_ORDER` sans casser
+  les commits existants car `platform_config.version` permet la migration.
+
+---
+
+## ADR-10 — Migration 045 (et non 038) pour le Setup Wizard
+
+**Date** : 2026-04-30 (Phase 9B)
+
+**Contexte** : le master plan réservait les migrations 037-047 :
+- 037 : Phase 9A (`direct_links`) ✅ posée
+- 038 : Phase 9H (`billing_full`) — à venir
+- 039 : Phase 9G (`hostinger_provisioning`) — à venir
+- 040 : Phase 9D (`ai_decisions_log`) — à venir
+- 041 : Phase 9C (`pricing_history`) — à venir
+- 042 : Phase 9J (`audit_trail_immutable`) — à venir
+- 043-044 : Phase 9-BOOT (`self_bootstrap`, `mandates_eidas`) ✅ posées
+
+Phase 9B n'avait pas de slot prévu. Décision à prendre : préempter 038,
+ou prendre le prochain slot libre.
+
+**Décision** : utiliser **045**.
+
+**Justifications** :
+- 038 est explicitement réservé pour `billing_full` (Phase 9H). Préempter
+  obligerait à renuméroter le master plan, ce qui crée du désordre dans
+  les ADR et la trace historique.
+- Postgres applique les migrations en ordre numérique. Tant que 038-042
+  ne référencent pas (par FK) les tables de 043-045, l'ordre actuel
+  n'introduit aucun blocage. C'est respecté : `setup_wizard_state` et
+  `platform_config` sont indépendantes des futures tables `billing` /
+  `hostinger` / `ai_decisions` / `pricing_history` / `audit_trail`.
+- Plus simple à expliquer dans la doc : « Phase X = migration X+10 dans
+  le master plan ; les phases hors plan prennent le prochain numéro libre ».
+
+**Conséquences** :
+- Quand les phases 9C-9J seront implémentées, leurs migrations 038-042
+  s'inséreront chronologiquement *avant* 043-045 dans la séquence appliquée
+  (numérique), même si elles sont créées plus tard. Aucun conflit FK puisque
+  ces 5 migrations ne référencent que des tables historiques (≤ 036).
+- Les futurs wizards/features doivent suivre la même règle : prochain
+  numéro libre. La Phase 9-BOOT (043) est l'exception historique.
