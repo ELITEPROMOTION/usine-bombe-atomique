@@ -1,0 +1,312 @@
+{
+  "version": "1.0.0",
+  "packs": {
+    "ecommerce_small": {
+      "label_i18n": {"en": "E-Commerce Small", "fr": "E-Commerce Petit"},
+      "base_price_eur": 3500,
+      "estimated_cost_eur": 1500,
+      "max_complexity_factor": 1.5,
+      "base_modules": [
+        "catalog",
+        "cart",
+        "checkout_stripe",
+        "user_auth",
+        "admin_basic"
+      ],
+      "base_deliverables": [
+        "frontend_storefront",
+        "admin_panel",
+        "stripe_integration",
+        "ssl_setup",
+        "5pp_landing"
+      ],
+      "suggested_addons": ["multi_currency", "blog_basic"],
+      "phases": {
+        "ANALYSIS": 5,
+        "DESIGN": 15,
+        "CORE": 35,
+        "FEATURES": 25,
+        "TESTING": 10,
+        "DEPLOY": 10
+      },
+      "manual_quote_required": false
+    },
+    "ecommerce_medium": {
+      "label_i18n": {"en": "E-Commerce Medium", "fr": "E-Commerce Moyen"},
+      "base_price_eur": 8500,
+      "estimated_cost_eur": 3500,
+      "max_complexity_factor": 1.8,
+      "base_modules": [
+        "catalog_advanced",
+        "cart",
+        "checkout_stripe",
+        "user_auth",
+        "admin_advanced",
+        "search_meilisearch",
+        "inventory",
+        "blog"
+      ],
+      "base_deliverables": [
+        "frontend_storefront",
+        "admin_panel",
+        "stripe_integration",
+        "ssl_setup",
+        "10pp_landing",
+        "blog_engine",
+        "search_indexing"
+      ],
+      "suggested_addons": [
+        "multi_currency",
+        "loyalty_program",
+        "abandoned_cart_email"
+      ],
+      "phases": {
+        "ANALYSIS": 5,
+        "DESIGN": 15,
+        "CORE": 30,
+        "FEATURES": 30,
+        "TESTING": 10,
+        "DEPLOY": 10
+      },
+      "manual_quote_required": false
+    },
+    "ecommerce_large": {
+      "label_i18n": {"en": "E-Commerce Large", "fr": "E-Commerce Grand"},
+      "base_price_eur": 18000,
+      "estimated_cost_eur": 8500,
+      "max_complexity_factor": 2.2,
+      "base_modules": [
+        "catalog_advanced",
+        "cart",
+        "checkout_multi_provider",
+        "user_auth_sso",
+        "admin_advanced",
+        "search_meilisearch",
+        "inventory_multi_warehouse",
+        "blog",
+        "marketplace_vendors",
+        "i18n_engine"
+      ],
+      "base_deliverables": [
+        "frontend_storefront",
+        "admin_panel",
+        "vendor_dashboard",
+        "stripe_integration",
+        "ssl_grade_a_plus",
+        "multi_locale_pages",
+        "blog_engine",
+        "search_indexing",
+        "monitoring_dashboard"
+      ],
+      "suggested_addons": [
+        "loyalty_program",
+        "advanced_reporting",
+        "api_partner_integration"
+      ],
+      "phases": {
+        "ANALYSIS": 8,
+        "DESIGN": 17,
+        "CORE": 30,
+        "FEATURES": 25,
+        "TESTING": 12,
+        "DEPLOY": 8
+      },
+      "manual_quote_required": false
+    },
+    "saas_small": {
+      "label_i18n": {"en": "SaaS Small", "fr": "SaaS Petit"},
+      "base_price_eur": 4500,
+      "estimated_cost_eur": 1800,
+      "max_complexity_factor": 1.6,
+      "base_modules": [
+        "user_auth",
+        "billing_stripe_subscriptions",
+        "dashboard_basic",
+        "settings",
+        "email_transactional"
+      ],
+      "base_deliverables": [
+        "frontend_app",
+        "admin_panel",
+        "stripe_subscriptions",
+        "ssl_setup",
+        "marketing_landing"
+      ],
+      "suggested_addons": ["api_keys_management", "audit_log_basic"],
+      "phases": {
+        "ANALYSIS": 5,
+        "DESIGN": 15,
+        "CORE": 40,
+        "FEATURES": 20,
+        "TESTING": 10,
+        "DEPLOY": 10
+      },
+      "manual_quote_required": false
+    },
+    "saas_medium": {
+      "label_i18n": {"en": "SaaS Medium", "fr": "SaaS Moyen"},
+      "base_price_eur": 12000,
+      "estimated_cost_eur": 5000,
+      "max_complexity_factor": 2.0,
+      "base_modules": [
+        "user_auth_sso",
+        "billing_stripe_subscriptions",
+        "dashboard_advanced",
+        "settings",
+        "email_transactional",
+        "audit_log",
+        "rbac",
+        "api_v1"
+      ],
+      "base_deliverables": [
+        "frontend_app",
+        "admin_panel",
+        "stripe_subscriptions",
+        "ssl_grade_a",
+        "marketing_landing",
+        "api_documentation",
+        "audit_dashboard"
+      ],
+      "suggested_addons": [
+        "advanced_reporting",
+        "white_label",
+        "webhooks"
+      ],
+      "phases": {
+        "ANALYSIS": 7,
+        "DESIGN": 18,
+        "CORE": 30,
+        "FEATURES": 25,
+        "TESTING": 12,
+        "DEPLOY": 8
+      },
+      "manual_quote_required": false
+    },
+    "saas_large": {
+      "label_i18n": {"en": "SaaS Large", "fr": "SaaS Grand"},
+      "base_price_eur": 28000,
+      "estimated_cost_eur": 12500,
+      "max_complexity_factor": 2.5,
+      "base_modules": [
+        "user_auth_sso_enterprise",
+        "billing_stripe_subscriptions",
+        "dashboard_advanced",
+        "settings",
+        "email_transactional",
+        "audit_log",
+        "rbac",
+        "api_v1",
+        "api_v2_graphql",
+        "i18n_engine",
+        "multi_tenant_strict"
+      ],
+      "base_deliverables": [
+        "frontend_app",
+        "admin_panel",
+        "stripe_subscriptions",
+        "ssl_grade_a_plus",
+        "marketing_landing",
+        "api_documentation",
+        "audit_dashboard",
+        "graphql_playground",
+        "multi_locale_pages",
+        "monitoring_dashboard"
+      ],
+      "suggested_addons": [
+        "advanced_reporting",
+        "white_label",
+        "webhooks",
+        "soc2_compliance_pack"
+      ],
+      "phases": {
+        "ANALYSIS": 10,
+        "DESIGN": 20,
+        "CORE": 28,
+        "FEATURES": 22,
+        "TESTING": 12,
+        "DEPLOY": 8
+      },
+      "manual_quote_required": false
+    },
+    "mobile_app": {
+      "label_i18n": {"en": "Mobile App (iOS + Android)", "fr": "App Mobile (iOS + Android)"},
+      "base_price_eur": 9500,
+      "estimated_cost_eur": 4200,
+      "max_complexity_factor": 1.9,
+      "base_modules": [
+        "user_auth",
+        "push_notifications",
+        "offline_storage",
+        "deep_linking",
+        "analytics_mobile"
+      ],
+      "base_deliverables": [
+        "ios_app",
+        "android_app",
+        "backend_api",
+        "app_store_assets",
+        "play_store_assets",
+        "marketing_landing"
+      ],
+      "suggested_addons": ["in_app_purchases", "social_login"],
+      "phases": {
+        "ANALYSIS": 6,
+        "DESIGN": 16,
+        "CORE": 32,
+        "FEATURES": 26,
+        "TESTING": 12,
+        "DEPLOY": 8
+      },
+      "manual_quote_required": false
+    },
+    "api_b2b": {
+      "label_i18n": {"en": "API B2B", "fr": "API B2B"},
+      "base_price_eur": 7000,
+      "estimated_cost_eur": 3000,
+      "max_complexity_factor": 1.7,
+      "base_modules": [
+        "api_v1",
+        "api_keys_management",
+        "rate_limiting",
+        "openapi_spec",
+        "webhooks",
+        "audit_log"
+      ],
+      "base_deliverables": [
+        "rest_api",
+        "openapi_documentation",
+        "developer_portal",
+        "ssl_setup",
+        "rate_limit_dashboard"
+      ],
+      "suggested_addons": ["graphql_layer", "sandbox_environment"],
+      "phases": {
+        "ANALYSIS": 6,
+        "DESIGN": 14,
+        "CORE": 36,
+        "FEATURES": 22,
+        "TESTING": 14,
+        "DEPLOY": 8
+      },
+      "manual_quote_required": false
+    },
+    "custom": {
+      "label_i18n": {"en": "Custom Project", "fr": "Projet Sur Mesure"},
+      "base_price_eur": 0,
+      "estimated_cost_eur": 0,
+      "max_complexity_factor": 5.0,
+      "base_modules": [],
+      "base_deliverables": [],
+      "suggested_addons": [],
+      "phases": {
+        "ANALYSIS": 10,
+        "DESIGN": 20,
+        "CORE": 30,
+        "FEATURES": 20,
+        "TESTING": 10,
+        "DEPLOY": 10
+      },
+      "manual_quote_required": true
+    }
+  }
+}

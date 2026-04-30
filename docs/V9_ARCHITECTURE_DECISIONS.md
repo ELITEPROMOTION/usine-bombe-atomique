@@ -305,3 +305,47 @@ ou prendre le prochain slot libre.
   ces 5 migrations ne référencent que des tables historiques (≤ 036).
 - Les futurs wizards/features doivent suivre la même règle : prochain
   numéro libre. La Phase 9-BOOT (043) est l'exception historique.
+
+---
+
+## ADR-11 — Migration 041 = `intelligence_engine` (et non juste `pricing_history`)
+
+**Date** : 2026-04-30 (Phase 9C)
+
+**Contexte** : le master plan réservait 041 à `pricing_history` uniquement.
+Mais Phase 9C nécessite 4 tables coordonnées :
+`intelligence_qualifications`, `intelligence_pricings`,
+`intelligence_assemblies`, `project_progression`. Trois choix possibles :
+
+1. Une migration par table (037-est déjà occupé, 038-040 réservés à d'autres
+   phases — pas pratique).
+2. Garder 041 avec juste `pricing_history` et créer 046-048 pour les 3
+   autres.
+3. Élargir 041 pour englober tout l'Intelligence Engine.
+
+**Décision** : option **3**. La migration 041 contient les 4 tables sous
+le nom global `041_intelligence_engine.sql`.
+
+**Justifications** :
+- **Cohérence** : les 4 tables sont créées et seedées par la même phase.
+  Les FK `intelligence_assemblies.qualification_id → intelligence_qualifications`
+  et `intelligence_assemblies.pricing_id → intelligence_pricings` doivent
+  exister dans la même transaction. Splitter en 3-4 migrations rend les
+  rollbacks et le debug plus pénibles.
+- **Evidence_ledger** : un seul seal pour Phase 9C (1 maillon de chaîne)
+  au lieu de 4. Plus lisible dans l'audit trail.
+- **Master plan inchangé** : 041 reste « Phase 9C ». Le label
+  `pricing_history` était un nom interne ; on le conserve via le nom de
+  la table (`intelligence_pricings`) qui en est la généralisation.
+- Aucun impact sur la numérotation des phases suivantes : 040 reste
+  réservé à 9D (`ai_decisions_log`), 042 reste réservé à 9J
+  (`audit_trail_immutable`).
+
+**Conséquences** :
+- Si plus tard une migration *additive* à Intelligence Engine est
+  nécessaire (e.g. un index ou une colonne), elle prend un nouveau
+  numéro libre (ex. 046+) et **ne réutilise pas** 041. Idempotence des
+  migrations existantes garantie via `CREATE TABLE IF NOT EXISTS`.
+- Documentation : si quelqu'un cherche « pricing_history », il trouve
+  `intelligence_pricings` dans 041. Le commentaire SQL le mentionne
+  explicitement.
