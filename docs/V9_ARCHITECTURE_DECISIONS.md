@@ -1452,3 +1452,76 @@ Routes :
   ouvre la vue d'un client donné), il faudra une route `/admin/clients/:id`
   qui rend `ClientShell` avec contexte forcé. Pattern facile mais à
   câbler explicitement.
+
+---
+
+## ADR-33 — JWT client séparé du JWT admin avec claim `project_id`
+
+**Date** : 2026-05-01 (Phase 9M-bis)
+
+**Contexte** : Phase 9M-bis ajoute les endpoints `/client/*` qui
+exposent des données projet à un client final (non admin). Question :
+faut-il un seul JWT polyvalent, ou deux JWT distincts ?
+
+Options évaluées :
+1. **Un seul secret + claim `role: admin|client`** : simple mais
+   couplage maximal.
+2. **Deux secrets** : `JWT_ADMIN_SECRET` + `JWT_CLIENT_SECRET`,
+   issuers distincts.
+
+**Décision** : option 2 — deux secrets distincts.
+
+`JWT_CLIENT_SECRET` :
+- Variable d'env distincte (validée séparément, ≥ 32 chars).
+- Issuer `uba-studio/client` (vs `uba-studio/admin` pour l'admin).
+  Le décodeur `jwt.decode(... issuer=ISSUER)` rejette automatiquement
+  les tokens cross-issuer.
+- Claims : `sub` (owner_email), `project_id` (UUID), `iat`, `exp`,
+  `iss`. **Pas de `role`** — un client est un client, point.
+- TTL par défaut : 24h (vs 1h pour admin) — adapté aux usages
+  client moins fréquents.
+
+**Justifications** :
+1. **Compromis blast radius limité** : si `JWT_ADMIN_SECRET` fuit,
+   un attaquant peut forger des tokens admin mais pas client (et
+   vice-versa). Avec un seul secret partagé, une fuite contamine
+   les deux surfaces.
+2. **Politiques de rotation indépendantes** : on peut rotater
+   `JWT_CLIENT_SECRET` mensuellement (volume tokens élevé,
+   rotation peu coûteuse côté admin) tout en gardant
+   `JWT_ADMIN_SECRET` stable.
+3. **Issuer rejet cross-claim** : le décodeur explicite empêche un
+   token admin valide d'être accepté par `verify_client_token` même
+   si les secrets étaient identiques par accident (defense in depth).
+
+**Claim `project_id` scope-bound** :
+
+Le claim `project_id` n'est **pas un identifiant utilisateur** — c'est
+un **scope**. Tous les endpoints `/client/*` lisent
+`principal.project_id` et filtrent les requêtes DB sur cette valeur.
+Conséquences directes :
+
+- Un client A ne peut **pas** accéder aux données du client B en
+  manipulant l'URL — son token ne contient que son project_id.
+- Pas de paramètre `project_id` dans l'URL (`GET /client/project`,
+  pas `GET /client/projects/{id}`). Le scope est implicite, lié au
+  token.
+- Multi-project clients **non supportés** en V9 : un client = un
+  projet = un token. Pour multi-project, refonte du claim en
+  `project_ids: list[UUID]` + endpoint `/client/projects` listant
+  les projets accessibles.
+
+**Conséquences** :
+- Login flow client séparé : aucun endpoint `/auth/client/login` en
+  V9M-bis. Les tokens sont créés côté admin (`create_client_token`)
+  ou via magic-link email (à brancher en phase login ultérieure).
+- Si le claim `project_id` du JWT pointe vers un projet supprimé/
+  archived, les endpoints retournent 404 — comportement souhaité
+  (le client n'a plus accès à un projet supprimé).
+- Aucune table d'authentification client n'est créée en V9M-bis :
+  l'identité est dans le JWT, point. Pas de mots de passe stockés,
+  pas de hashing bcrypt — passwordless by design.
+- Trade-off : si un client perd son token, il ne peut pas se
+  reconnecter sans intervention admin. Phase magic-link future
+  ajoutera un flow `/auth/client/request-link` qui envoie un mail
+  avec un nouveau token.
