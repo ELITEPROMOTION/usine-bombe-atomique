@@ -824,3 +824,106 @@ les modules 9-BOOT/9A-9H s'enchaînent correctement. Trois options :
   uniquement en pre-merge check.
 - Si un module ajoute un `fetchrow`/`fetch` interne, il faut mettre à
   jour les tests E2E correspondants. Coût acceptable.
+
+---
+
+## ADR-22 — JWT admin avec backward-compat token legacy (transition 9N → 9J)
+
+**Date** : 2026-04-30 (Phase 9J)
+
+**Contexte** : Phase 9N a livré `get_current_admin` avec auth
+token-based stopgap (X-Admin-Token vs UBA_ADMIN_TOKEN). Phase 9J doit
+introduire le JWT + RBAC mais **sans casser** les déploiements existants
+qui utilisent déjà le token legacy.
+
+**Décision** : `get_current_admin` accepte les **deux modes** simultanément :
+
+1. `Authorization: Bearer <jwt>` — si `JWT_ADMIN_SECRET` configurée,
+   priorité absolue. Le rôle vient du JWT.
+2. `X-Admin-Token: <token>` — fallback si UBA_ADMIN_TOKEN configurée.
+   Rôle = ADMIN par défaut (full access).
+
+Ordre :
+- Aucune env configurée → 503 (fail-closed)
+- Bearer présent + JWT activé → vérifie JWT
+- Bearer présent + JWT pas activé → 503 (Bearer envoyé, mais service
+  ne peut pas le valider → erreur explicite)
+- Sinon, fallback X-Admin-Token
+
+**Justifications** :
+- **Pas de regression 9N** : un déploiement qui utilise `UBA_ADMIN_TOKEN`
+  continue de marcher tel quel (rôle ADMIN par défaut, comportement
+  identique à 9N).
+- **Migration progressive** : un admin peut activer JWT mode, tester,
+  puis retirer `UBA_ADMIN_TOKEN` quand prêt.
+- **AdminPrincipal enrichi** : `role` (4 valeurs) et `auth_mode` (`jwt`/
+  `legacy`) sont visibles dans `admin_actions` (audit trail), permettant
+  de tracer qui a utilisé quel mode.
+
+**Conséquences** :
+- Quand la migration sera complète, on pourra retirer le path legacy
+  dans une future phase.
+- Phase 9N's ADR-17 reste valable comme **historique**.
+- Documentation : un admin doit savoir comment générer son JWT
+  (`create_admin_token` helper exposé).
+
+---
+
+## ADR-23 — Audit triggers SQL append-only (column-level pour mandates / webhook_events)
+
+**Date** : 2026-04-30 (Phase 9J)
+
+**Contexte** : Phase 9J doit garantir que les tables append-only restent
+inviolables même contre un attaquant ayant accès direct à la DB
+(super-user). Trois approches :
+
+1. Application-level (Python) : refuser UPDATE/DELETE depuis le code.
+   → ne protège pas contre un `psql` direct.
+2. Permissions GRANT/REVOKE : retirer UPDATE/DELETE au user app.
+   → casse les ALTER TABLE de migration.
+3. **Triggers BEFORE UPDATE/DELETE** qui RAISE EXCEPTION.
+   → protection forte, fonctionne même en super-user.
+
+**Décision** : option **3** (triggers).
+
+**Tables 100% append-only** (UPDATE et DELETE bloqués) :
+- `admin_actions` (Phase 9N)
+- `ai_decisions_log` (Phase 9D)
+- `hostinger_audit` (Phase 9G)
+- `direct_links_audit` (Phase 9A)
+
+**Tables column-level protected** (certains champs immuables, d'autres
+mutables avec contraintes) :
+- `webhook_events` :
+  - Immuables : `payload_json`, `signature_verified`, `event_type`,
+    `idempotency_key`, `source`, `received_at`
+  - One-shot : `processed_at`, `payment_id` (peuvent passer de NULL à
+    valeur, mais pas l'inverse, et pas modifiables après).
+- `mandates` :
+  - Immuables : `chain_hash`, `prev_hash`, `payload_hash`, `signed_at`,
+    `mandate_id`, `mandate_type`, `principal_id`, `agent_identity`,
+    `scope_json`
+  - One-shot : `revoked_at` (NULL → valeur, jamais l'inverse)
+  - Mutable : `audit_log` JSONB (append-only via `||` operator)
+
+**Justifications** :
+- **Defense in depth** : même un compromis applicatif ne peut pas
+  modifier les preuves d'audit.
+- **Cohérence eIDAS** : les mandats Article 26 sont signés numériquement
+  ; muter `chain_hash` invaliderait l'integrité de la chaîne.
+- **Standard SOC 2** : tableau d'audit protégé par contrôles techniques
+  (pas seulement procéduraux).
+- **Webhook idempotency garantie** : impossible de "rejouer" un event en
+  modifiant son `processed_at` à NULL.
+
+**Conséquences** :
+- Un admin avec `psql` ne peut **pas** "corriger" une ligne d'audit en
+  cas d'erreur opérationnelle. Il doit insérer un nouvel event qui
+  référence l'ancien (`fix_for=<old_id>` dans `payload_json`).
+- En cas de bug critique nécessitant une migration de données, il faut
+  `DROP TRIGGER` ; faire le data fix ; `CREATE TRIGGER` à nouveau —
+  tracé dans la migration.
+- La view `v_audit_immutability_status` permet de vérifier en prod que
+  les triggers sont bien actifs (smoke test pré-déploiement).
+- Tests offline ne valident pas réellement les triggers (asyncpg mocké).
+  La suite `production_readiness` Postgres-réel les couvrira.
