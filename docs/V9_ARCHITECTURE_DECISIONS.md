@@ -474,3 +474,103 @@ Trois options :
 - À la fin de la V9 (post-9P), une seule table `handoff_unified` consolidera
   les deux. Pour l'instant, deux tables distinctes mais **toutes deux**
   rattachables à `direct_links` via `direct_link_id`.
+
+---
+
+## ADR-15 — FK rétroactives `project_id` reportées en Phase 9P
+
+**Date** : 2026-04-30 (Phase 9F)
+
+**Contexte** : Phase 9F crée enfin la table canonique `projects`. Avant
+9F, les phases 9C/9D/9E utilisaient `project_id TEXT` libre car aucune
+table parent n'existait. Maintenant que `projects` existe, on pourrait
+ajouter des FK rétroactives sur :
+
+- `intelligence_qualifications.project_id`
+- `intelligence_pricings.project_id`
+- `intelligence_assemblies.project_id`
+- `project_progression.project_id`
+- `handoff_requests.project_id`
+- `ai_decisions_log.project_id`
+
+Trois options :
+
+1. Ajouter toutes les FK dans la migration 047 (Phase 9F).
+2. Convertir colonnes en UUID + FK en Phase 9P (consolidation FK + handoff).
+3. Laisser TEXT libre indéfiniment.
+
+**Décision** : option **2** (Phase 9P).
+
+**Justifications** :
+- **Données existantes potentiellement inconsistantes** : si la suite de
+  tests 9C-9E a inséré des `project_id` arbitraires (UUID ou strings),
+  un `ALTER TABLE ... ADD CONSTRAINT FOREIGN KEY` bloquerait la migration.
+  Phase 9P prévoit un script de validation + nettoyage avant l'ajout des FK.
+- **Type mismatch** : les colonnes existantes sont `TEXT`, le PK de `projects`
+  est `UUID`. Un `ALTER COLUMN ... TYPE UUID USING project_id::uuid` peut
+  échouer sur des valeurs non-UUID. Phase 9P validera tous les `project_id`
+  existants avant la conversion.
+- **Phase 9P** est déjà la phase « Injection liens directs livrables »
+  (master plan), un moment naturel pour faire le sweep d'unification (FK
+  + merger handoff_pending dans handoff_requests, cf. ADR-08).
+
+**Conséquences** :
+- Pendant 9F→9O, les phases consommatrices doivent valider elles-mêmes
+  que le `project_id` qu'elles utilisent existe dans `projects` (lookup
+  applicatif au lieu de FK constraint).
+- Risque limité : tous les `project_id` créés post-9F passent par
+  `ProjectFactory.create_from_session()`, qui retourne le UUID généré par
+  Postgres `gen_random_uuid()`. Donc 100% des nouveaux project_id sont
+  des UUID valides.
+- Phase 9P aura un script de migration data-aware :
+  ```sql
+  -- Pseudo-code pour 9P
+  DELETE FROM intelligence_qualifications WHERE project_id NOT IN (SELECT project_id::TEXT FROM projects);
+  ALTER TABLE intelligence_qualifications ALTER COLUMN project_id TYPE UUID USING project_id::uuid;
+  ALTER TABLE intelligence_qualifications ADD CONSTRAINT fk_iq_project FOREIGN KEY (project_id) REFERENCES projects(project_id);
+  -- + idem pour les 5 autres tables
+  ```
+
+---
+
+## ADR-16 — Découpage du Client Onboarding en 6 étapes (Identity / Brief / Pack / Branding / Technical / Review)
+
+**Date** : 2026-04-30 (Phase 9F)
+
+**Contexte** : le master plan brief V9 disait « onboarding client 6 étapes
+(5 min target) » sans détailler les 6. Décision architecturale en autonome.
+
+**Décision** : 6 étapes dans cet ordre :
+
+1. `identity` — qui es-tu ? (email, full_name, company, country, locale, currency)
+2. `project_brief` — quoi construire ? (title, description ≥ 30 chars, urgency)
+3. `pack_selection` — quel format commercial ? (pack ∈ enabled, accept estimate)
+4. `branding` — quelle apparence ? (logo, color, audience, sample copy)
+5. `technical_preferences` — quelles contraintes tech ? (stack, locales, domaine)
+6. `review_submit` — confirmer et accepter (tos_accepted obligatoire)
+
+**Justifications** :
+- **Friction croissante** : on commence par le plus simple (email +
+  identité) pour engager le client, on garde les questions plus précises
+  (technique) pour la fin quand l'investissement perçu est plus grand.
+- **CDC en step 2** : le brief client est l'input principal pour le
+  `QualificationEngine` (9C). Le placer tôt (step 2) garantit un texte
+  riche qui alimente la suite. Min 30 chars force un effort minimum.
+- **Pack en step 3** : après avoir vu le brief, le client choisit son
+  format. Si le pack `custom` est sélectionné, le pricing engine retournera
+  REQUIRES_MANUAL_QUOTE — flux qui boucle sur Ahmed.
+- **Branding et technical séparés** : on aurait pu fusionner, mais ça
+  produit un step trop chargé. Séparer permet aussi de skip technical
+  pour les clients moins techniques (futur : detect-by-pack et masquer).
+- **Review_submit obligatoire** : étape légale (TOS) et de confirmation
+  visuelle (résumé des 5 étapes précédentes). Pydantic `tos_accepted=True`
+  obligatoire + double-check dans `ProjectFactory`.
+
+**Conséquences** :
+- Phase 9N (UI client) implémente les 6 écrans dans cet ordre.
+- Phase 9R (E2E tests) testera le funnel d'abandon par étape.
+- Si l'analytics montre un drop-off à une étape, la step peut être
+  retravaillée sans casser les autres (Pydantic schemas isolés).
+- Une 7ème étape « payment_method » pourrait être ajoutée plus tard
+  pour pré-remplir le checkout Stripe (Phase 9H), mais on garde 6 pour
+  l'instant — c'est cohérent avec le master plan.
