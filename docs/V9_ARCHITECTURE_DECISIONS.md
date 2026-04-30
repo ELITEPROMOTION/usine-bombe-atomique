@@ -776,3 +776,51 @@ if row is None:
   `/admin/webhook-events/{id}/replay` (Phase 9N+).
 - Pour les webhooks d'autres sources (Hostinger, Resend) : même pattern,
   `webhook_events.source` distingue.
+
+---
+
+## ADR-21 — Tests E2E sans DB réelle (mocks séquencés `_fake_pool`)
+
+**Date** : 2026-04-30 (Phase 9R)
+
+**Contexte** : Phase 9R doit livrer des tests d'intégration validant que
+les modules 9-BOOT/9A-9H s'enchaînent correctement. Trois options :
+
+1. **DB réelle Postgres** via docker-compose (pattern
+   `tests/production_readiness/`). Coût : démarrage docker à chaque run,
+   isolation entre tests délicate, lent (~30s+ par run).
+2. **SQLite shim in-memory**. Coût : réécriture de migrations
+   PostgreSQL-spécifiques (JSONB, gen_random_uuid, INTERVAL, pgcrypto).
+   ~50% des migrations ne portent pas. Maintenance double.
+3. **Mocks asyncpg séquencés** (`_fake_pool` avec `side_effects`).
+
+**Décision** : option **3**.
+
+**Justifications** :
+- **Vitesse** : 9 tests E2E exécutent en 1.5s. Permet d'itérer dans la
+  boucle TDD.
+- **Détection des bugs de contract** : un test E2E avec engine réels
+  attrape les divergences de noms d'attributs (cf. bug
+  `card.body`→`card.description` attrapé en 9R).
+- **Pas de duplication** : la sémantique SQL est validée par la suite
+  `production_readiness` existante qui tourne contre Postgres réel en
+  CI/CD.
+- **Reproducibilité** : les `side_effects` sont des dicts littéraux,
+  un test lit comme un script clair de la conversation app↔DB.
+
+**Limitations acceptées** :
+- Un changement de SQL non visible côté Pydantic peut passer (e.g. on
+  change le nom d'une colonne). À détecter par la suite Postgres réel.
+- L'ordre des `fetchrow` doit être ré-exact : si on ajoute un
+  `fetchrow` au milieu d'un engine, les tests E2E cassent. C'est un
+  effet de bord acceptable — c'est l'avantage de "fuzz au refactor".
+- Pas de test de **performance** ni de **concurrence** au niveau DB
+  (locks, deadlocks).
+
+**Conséquences** :
+- Quand la suite `production_readiness` tournera contre Postgres réel,
+  les contracts E2E n'auront plus de raison d'être doublés là-bas. On
+  pourra alors marquer ces E2E `@pytest.mark.smoke` pour les exécuter
+  uniquement en pre-merge check.
+- Si un module ajoute un `fetchrow`/`fetch` interne, il faut mettre à
+  jour les tests E2E correspondants. Coût acceptable.
