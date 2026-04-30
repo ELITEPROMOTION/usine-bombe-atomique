@@ -690,3 +690,89 @@ appelé. `_do_request` est marqué `# pragma: no cover - integration only`.
 - Migration future : ajouter une FK
   `hostinger_resources.payment_id → payments.payment_id` quand Phase 9H
   créera la table `payments`. Reportée en Phase 9P (cohérence avec ADR-15).
+
+---
+
+## ADR-19 — Tokens IA INVISIBLES dans les invoices client
+
+**Date** : 2026-04-30 (Phase 9H)
+
+**Contexte** : Phase 9D a livré `ai_decisions_log` qui trace chaque appel
+LLM (provider, tokens_in, tokens_out, cost_usd, latency). Phase 9H génère
+des invoices client. Question : ces métriques internes doivent-elles
+apparaître dans l'invoice ?
+
+**Décision** : **non**. Les invoices client ne référencent JAMAIS
+`ai_decisions_log` ni aucune métrique IA. Le client voit uniquement :
+- Description du projet
+- Montant HT / TVA / TTC
+- Numéro de facture, date, country
+
+**Justifications** :
+- **Modèle économique** : UBA Studio facture un *projet* livré, pas une
+  consommation IA token-par-token.
+- **Confidentialité contractuelle** : exposer "votre projet a coûté
+  $X.YZ en appels Claude" laisserait penser au client qu'il pourrait
+  négocier sur cette base. Or le coût AI est ~5% du prix final.
+- **Simplicité** : une invoice "UBA Studio Pack saas_medium = 12 000 €
+  TTC" est immédiatement compréhensible.
+- **Conformité comptable** : les autorités fiscales attendent une
+  description du service livré, pas un détail technique.
+
+**Implémentation** :
+- `invoice_generator.render_html()` n'utilise QUE les champs structurés
+  de `Invoice`. `Invoice.metadata` est ignoré dans le rendu HTML.
+- **Test dédié** `test_render_html_does_not_leak_ai_metadata` injecte
+  des termes interdits (`claude`, `tokens_in`, `cost_usd`) dans
+  `invoice.metadata` puis assert qu'aucun n'apparaît dans le HTML.
+
+**Conséquences** :
+- Si une admin invoice détaillée est requise un jour (comptabilité
+  interne), créer un endpoint `/admin/invoices/{id}/details` distinct
+  du rendu client.
+- Les analytics FinOps (Phase 9N `/admin/ai/cost-dashboard`) restent
+  internes et n'ont rien à voir avec les invoices.
+
+---
+
+## ADR-20 — Idempotency Stripe via `webhook_events.idempotency_key UNIQUE`
+
+**Date** : 2026-04-30 (Phase 9H)
+
+**Contexte** : Stripe peut retransmettre un même webhook plusieurs fois
+(timeout serveur, retry exponentiel). Si on traite l'event 2 fois, on
+peut valider 2 fois un projet (UPDATE payments × 2 + callback resume × 2).
+
+**Décision** : index `UNIQUE` sur `webhook_events.idempotency_key` +
+`INSERT ... ON CONFLICT DO NOTHING RETURNING event_db_id`.
+
+**Justifications** :
+- **Source de vérité unique** : la DB est le seul état partagé entre
+  workers. Un index UNIQUE garantit l'unicité même sous concurrence
+  multi-process.
+- **Pas de dépendance externe** (Redis), pas de cache à invalider.
+- **Replay tolérant** : 2 process qui reçoivent le même event en
+  parallèle → seul le 1er gagne le INSERT, le 2ème reçoit
+  `WebhookAlreadyProcessed` et retourne 200 OK à Stripe (qui arrête
+  de retry).
+- **Audit trail naturel** : `webhook_events` contient l'historique
+  complet, requêtable pour debug.
+
+**Implémentation** :
+```python
+row = await conn.fetchrow(
+    "INSERT INTO webhook_events (...) VALUES ($1, ...) "
+    "ON CONFLICT (idempotency_key) DO NOTHING RETURNING event_db_id",
+    event_id, ...
+)
+if row is None:
+    raise WebhookAlreadyProcessed(event_id)
+```
+
+**Conséquences** :
+- Si le dispatch crash après l'INSERT, l'event est marqué "vu" mais
+  pas processed. Un retry Stripe ne re-déclenchera pas le dispatch.
+  → si le dispatch est critique, ajouter un endpoint admin
+  `/admin/webhook-events/{id}/replay` (Phase 9N+).
+- Pour les webhooks d'autres sources (Hostinger, Resend) : même pattern,
+  `webhook_events.source` distingue.
