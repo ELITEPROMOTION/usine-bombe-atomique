@@ -1105,3 +1105,116 @@ Tables impliquées dans la V9 et leur statut :
 - Le `request_id` UUID dans `data_erasure_requests` reste pour
   traçabilité (preuve qu'on a bien traité la demande, conservée 6 ans
   RGPD).
+
+---
+
+## ADR-27 — Prometheus CollectorRegistry injectable
+
+**Date** : 2026-04-29 (Phase 9K)
+
+**Contexte** : `prometheus_client` maintient un `REGISTRY` global au
+niveau module. Chaque `Counter("uba_xxx", …)` s'enregistre sur ce
+registry. Quand pytest exécute la suite :
+- en parallèle (`pytest-xdist`),
+- ou avec re-import via `importlib.reload`,
+- ou avec collection multi-passes (plugin caching),
+
+la création d'une nouvelle instance `V9Metrics()` lève
+`ValueError: Duplicated timeseries in CollectorRegistry: {'uba_…'}`.
+
+**Décision** : `V9Metrics.__init__` accepte un argument optionnel
+`registry: CollectorRegistry | None = None` :
+- En **production** → `None` → utilise `REGISTRY` global (comportement
+  Prometheus standard, scrape via `/metrics`).
+- En **tests** → `CollectorRegistry()` neuf à chaque test, isolation
+  totale.
+- Helper `reset_v9_metrics_for_test(registry)` réinitialise le
+  singleton du module pour les tests qui veulent tester
+  `get_v9_metrics()`.
+
+**Justifications** :
+- **Pas de monkey-patch global** : les tests n'ont pas besoin de
+  bidouiller `prometheus_client.REGISTRY._collector_to_names`.
+- **Pattern standard** dans la communauté Prometheus Python (cf.
+  recommandation officielle : "for tests, pass a custom registry").
+- **Coût zéro** en prod : le default `None` ne change rien à
+  l'expérience utilisateur.
+
+**Conséquences** :
+- Les call-sites doivent **toujours** passer par `get_v9_metrics()`
+  (singleton lazy) plutôt que d'instancier `V9Metrics()` directement,
+  sinon ils utilisent un registry isolé qui ne sera jamais scrapé.
+- Les tests ne doivent **jamais** appeler `get_v9_metrics()` : ils
+  passent leur propre `V9Metrics(CollectorRegistry())`.
+- Le pattern s'applique aussi aux Histogram / Gauge créés dans des
+  modules futurs (e.g. webhook handler internal metrics).
+
+---
+
+## ADR-28 — Sentry helpers no-op gracieux
+
+**Date** : 2026-04-29 (Phase 9K)
+
+**Contexte** : `sentry_sdk` est une dépendance lourde (~3 MB compressed
++ transitive deps), et tous les déploiements V9 ne l'auront pas :
+- Dev local sans DSN → SDK installé mais Hub.client = None.
+- CI/tests → SDK non installé du tout.
+- Prod minimaliste → SDK non installé pour réduire l'attack surface.
+
+Les call-sites V9 (webhook handler, AI router, admin endpoints) doivent
+pouvoir appeler `add_project_context(...)` **sans** d'abord tester la
+présence du SDK, sinon le code business est pollué de `if
+SENTRY_AVAILABLE:` partout.
+
+**Décision** : tous les helpers du module `observability/sentry_context.py`
+sont **no-op gracieux** :
+
+```python
+def add_project_context(...) -> bool:
+    if not is_sentry_available():
+        return False  # silent no-op
+    try:
+        import sentry_sdk
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag(...)
+        return True
+    except Exception as exc:
+        logger.debug("sentry add_project_context failed: %s", exc)
+        return False
+```
+
+Trois couches de protection :
+1. `is_sentry_available()` capture `ImportError`, `AttributeError`
+   (Hub.current change selon version SDK), `RuntimeError` (Hub non
+   initialisé).
+2. Le `try/except` interne attrape n'importe quelle erreur du
+   sentry_sdk lui-même (e.g. réseau down, config invalide).
+3. Aucune exception ne remonte au call-site. Les helpers retournent
+   `bool` (True = enrichi, False = no-op) pour que les tests puissent
+   vérifier le chemin sans qu'aucun code business ne soit affecté
+   par la valeur de retour.
+
+**Justifications** :
+- **Sentry ne doit jamais casser le flow business**. Un webhook
+  Stripe qui échoue parce que Sentry est down = perte de revenus.
+- **Optionnalité du SDK** : `requirements.txt` ne contient pas
+  `sentry-sdk`. Le déploiement prod l'ajoute via une couche extra
+  (`requirements-monitoring.txt`).
+- **Privacy GDPR** : `_hash_email(email)` (SHA-256[:16]) garantit
+  qu'aucune PII brute n'est transmise à Sentry, indépendamment du
+  fait que Sentry soit là ou pas.
+
+**Conséquences** :
+- Les call-sites peuvent appeler `add_project_context(project_id,
+  owner_email=...)` sans aucune garde. Si Sentry est absent, c'est un
+  no-op silencieux. Si Sentry est là, le scope est enrichi.
+- Les tests ne dépendent pas de `sentry-sdk` installé : ils peuvent
+  soit vérifier le no-op (`assert add_project_context(...) is False`)
+  soit mock le SDK via `monkeypatch` pour vérifier le record path.
+- Trade-off : si sentry_sdk **est** installé mais cassé (e.g. DSN
+  invalide), on perd silencieusement des events. Compensé par le
+  log DEBUG. Acceptable car alternative = casser le flow business.
+- L'`ImportError` est re-déclenchée à chaque appel quand le SDK
+  manque (Python ne cache pas les imports échoués). Surcoût
+  négligeable mais optimisable via `lru_cache(1)` plus tard si
+  observé en profiling.
