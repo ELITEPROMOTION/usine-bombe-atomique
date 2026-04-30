@@ -427,3 +427,50 @@ crypto) à HIGH confidence.
 - Pour les tests qui nécessitent la reproductibilité (router routage),
   on injecte `random.Random(seed)` ; pour la prod, c'est `SystemRandom`
   par défaut.
+
+---
+
+## ADR-14 — Coexistence `handoff_kyc_orchestrator` (9-BOOT) + `HandoffOrchestrator` (9E)
+
+**Date** : 2026-04-30 (Phase 9E)
+
+**Contexte** : Phase 9-BOOT a livré `handoff_kyc_orchestrator` avec sa
+propre table `handoff_pending` (magic_link_token inline). Phase 9A a
+livré `direct_links` (framework générique de tokens). Phase 9E doit
+livrer un « Handoff Orchestrator » plus large.
+
+Trois options :
+
+1. **Refactor 9-BOOT** pour utiliser `direct_links` partout, fusionner
+   `handoff_pending` et `handoff_requests` en une seule table.
+2. **Coexistence** : 9-BOOT reste tel quel ; 9E est un nouveau pipeline
+   à côté, utilisant `direct_links`.
+3. **Tout réécrire** dans 9E et déprécier 9-BOOT.
+
+**Décision** : option **2** (coexistence).
+
+**Justifications** :
+- **Non régression V9** : `handoff_kyc_orchestrator` est testé (5 tests
+  9-BOOT) et déjà invoqué par `account_creator_orchestrator`. Le casser
+  forcerait à réviser 9-BOOT entièrement.
+- **Sémantiques différentes** : 9-BOOT modélise un *flux d'activation
+  service tier* avec rappels 1h/12h/24h codés en dur ; 9E est *générique*
+  (review, paiement, domaine, custom) avec callbacks injectables et
+  state machine explicite.
+- **Tables distinctes** : `handoff_pending` (9-BOOT) et `handoff_requests`
+  (9E) ont des shapes différentes — `handoff_pending` n'a pas de
+  `direct_link_id`, `handoff_requests` n'a pas de `magic_link_token`.
+  Fusionner exigerait une migration de données complexe.
+- **Plan de migration prévu** en **Phase 9P** : ajouter `handoff_pending.
+  direct_link_id UUID FK → direct_links.link_id`, backfill via les
+  magic_link_token existants, puis dropper la colonne magic_link_token
+  une fois la transition complète. Documenté dans ADR-08 (9A).
+
+**Conséquences** :
+- Le code consommant les handoffs doit savoir à quel pipeline parler :
+  - `account_creator_orchestrator` → `handoff_kyc_orchestrator`
+  - tout le reste (Phase 9F+) → `HandoffOrchestrator`
+- Documentation `V9_PHASE_9E_REPORT.md` §3.4 explicite cette dichotomie.
+- À la fin de la V9 (post-9P), une seule table `handoff_unified` consolidera
+  les deux. Pour l'instant, deux tables distinctes mais **toutes deux**
+  rattachables à `direct_links` via `direct_link_id`.
