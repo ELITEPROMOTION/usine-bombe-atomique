@@ -1335,3 +1335,120 @@ production. Le coût d'une fuite chaos en prod = downtime payant.
 - L'option future "chaos canary en prod" nécessitera un nouveau
   pattern (probabilité par request_id, scope tenant, etc.) — et un
   nouvel ADR. Hors scope V9.
+
+---
+
+## ADR-31 — Mock data layer isolé en un seul fichier
+
+**Date** : 2026-05-01 (Phase 9M)
+
+**Contexte** : Phase 9M livre l'espace client frontend, mais les
+endpoints backend `/client/*` n'existent pas encore (scope frontend
+only). Trois options pour dev offline-friendly :
+
+1. **Mock dispersé par module** : chaque wrapper `client_dashboard.ts`,
+   `client_payments.ts`, etc., contient ses propres fixtures inline.
+2. **MSW (Mock Service Worker)** : intercepte les requêtes au niveau
+   navigateur via service worker.
+3. **Fichier fixtures unique + fallback `try/catch`** : un seul
+   `client_fixtures.ts` exporte tous les types et données ; chaque
+   wrapper tente l'appel HTTP et fallback sur les fixtures.
+
+**Décision** : option 3.
+
+```ts
+async function safeGet<T>(path: string, fallback: T): Promise<T> {
+  try {
+    const r = await apiClient.get<T>(path);
+    return r.data;
+  } catch { return fallback; }
+}
+```
+
+Fichier `client_fixtures.ts` exporte :
+- Tous les types (`ClientProject`, `ClientMilestone`, `ClientActivity`,
+  `ClientDeliverable`, `ClientInvoice`, `ClientHandoff`, `ClientProfile`).
+- Toutes les données mock typées (`MOCK_PROJECT`, etc.).
+
+Les wrappers ré-exportent les types et utilisent les mocks comme
+fallback.
+
+**Justifications** :
+- **Single source of truth** : un dev qui veut comprendre quels
+  fixtures existent regarde un seul fichier.
+- **Pas de dépendance build-time** : MSW ajoute un service worker à
+  bundler, complexité runtime, et nécessite enable explicite. Le
+  fallback `try/catch` est invisible et zero-config.
+- **Branchement backend indolore** : quand `/client/*` sera prêt, on
+  supprime `try/catch` et on garde juste `apiClient.get<T>(path)`.
+  Aucune autre modif. Possible aussi de garder le fallback pour dev
+  hors-ligne perpétuel.
+- **Type alignment forcé** : les mocks sont typés, donc si le backend
+  change le contrat, on a une erreur de typecheck (à condition que
+  les types soient eux-mêmes générés depuis le backend — pour V9 on
+  les maintient à la main).
+
+**Conséquences** :
+- Un dev qui ne lit pas le code peut croire que les pages sont
+  câblées au vrai backend. Mitigation : commentaire en tête de chaque
+  wrapper explicitant le fallback + ADR-31 visible.
+- Si le backend retourne une erreur 500 légitime, le fallback masque
+  l'erreur. Acceptable en dev, **dangereux en prod**. Mitigation :
+  retirer le `try/catch` au moment du branchement réel (le commit qui
+  branche supprime le fallback ; pas d'option intermédiaire).
+- Pas de simulation d'états divers (loading, error, partial). Pour
+  démo riche, ajouter un query param `?demo_state=...` qui injecte
+  des fixtures alternatifs serait utile. Hors scope V9M.
+
+---
+
+## ADR-32 — Route segregation client / admin via shells distincts
+
+**Date** : 2026-05-01 (Phase 9M)
+
+**Contexte** : Le frontend V9 servait jusqu'à 9M uniquement la zone
+admin (Ahmed CEO + ops). 9M ajoute l'espace client. Question :
+faut-il un seul shell paramétré par rôle, ou deux shells distincts ?
+
+Options :
+1. **Single shell + rôle prop** : `<AppShell role={role} />` qui
+   rend une nav différente selon admin/client.
+2. **Deux shells** : `AppShell` (admin) + `ClientShell` (client),
+   chacun gère son chrome.
+
+**Décision** : option 2 — `ClientShell` séparé.
+
+Routes :
+- `/` → `AppShell` (admin)
+- `/client/*` → `ClientShell` (client)
+
+**Justifications** :
+- **Pas de fuite d'options internes** : le client ne doit jamais voir
+  "Ahmed CEO", "OSINT", "Cognition". Un shell paramétré complique la
+  vérification (test : "est-ce que cette nav fuit ?"). Avec deux
+  shells, c'est trivial.
+- **UX différentes** : la nav admin a 13 entrées techniques (FleetPage,
+  TruthPage, ObservabilityPage). La nav client a 4 entrées orientées
+  besoin (Vue d'ensemble, Livrables, Paiements, Profil). Forcer un
+  seul composant à adresser les deux UX = composant à 200+ lignes de
+  conditions.
+- **Évolutions indépendantes** : on pourra repenser l'UX client (ex:
+  ajouter un onboarding wizard, un help drawer) sans toucher l'admin.
+- **Bundle splitting possible** : à terme, lazy-load des pages client
+  (`React.lazy(() => import("./pages/client/..."))`) sans impacter le
+  bundle admin. En 9M on n'optimise pas, mais l'architecture le
+  permet.
+
+**Conséquences** :
+- Duplication chrome (logo, header, footer-like profile). Acceptable
+  car volumes différents (143 LoC ClientShell vs 135 LoC AppShell).
+- `AuthGuard` actuel ne distingue pas client/admin. Un user
+  authentifié peut visiter `/client/*` ou `/` indifféremment. **Pour
+  prod**, il faut un claim `role` dans le JWT et un guard dédié
+  (`<ClientAuthGuard>` qui redirige vers `/` si role admin, et
+  réciproquement). Hors scope 9M, à traiter en 9M-bis ou phase
+  sécurité ultérieure.
+- Si on veut un mode "admin previews espace client" (ex: support qui
+  ouvre la vue d'un client donné), il faudra une route `/admin/clients/:id`
+  qui rend `ClientShell` avec contexte forcé. Pattern facile mais à
+  câbler explicitement.

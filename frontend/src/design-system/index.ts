@@ -7,3 +7,7 @@ export * from "./Timeline";
 export * from "./AlertBanner";
 export * from "./Button";
 export * from "./Modal";
+export * from "./MilestoneTimeline";
+export * from "./ProgressGauge";
+export * from "./DeliverableCard";
+export * from "./InvoicePreview";

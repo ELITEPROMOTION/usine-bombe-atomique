@@ -16,7 +16,12 @@ import { CognitionPage } from "@/pages/CognitionPage";
 import { TruthPage } from "@/pages/TruthPage";
 import { DomainsPage } from "@/pages/DomainsPage";
 import { AppShell } from "@/components/layout/AppShell";
+import { ClientShell } from "@/components/layout/ClientShell";
 import { AuthGuard } from "@/components/layout/AuthGuard";
+import { ClientDashboardPage } from "@/pages/client/ClientDashboardPage";
+import { ClientDeliverablesPage } from "@/pages/client/ClientDeliverablesPage";
+import { ClientPaymentsPage } from "@/pages/client/ClientPaymentsPage";
+import { ClientProfilePage } from "@/pages/client/ClientProfilePage";
 
 export default function App() {
   return (
@@ -40,6 +45,12 @@ export default function App() {
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="tasks/:id" element={<ProgressPage />} />
             <Route path="tasks/:id/results" element={<ResultsPage />} />
+          </Route>
+          <Route path="client" element={<ClientShell />}>
+            <Route index element={<ClientDashboardPage />} />
+            <Route path="deliverables" element={<ClientDeliverablesPage />} />
+            <Route path="payments" element={<ClientPaymentsPage />} />
+            <Route path="profile" element={<ClientProfilePage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
