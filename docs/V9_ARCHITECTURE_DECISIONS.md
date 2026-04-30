@@ -1218,3 +1218,120 @@ Trois couches de protection :
   manque (Python ne cache pas les imports échoués). Surcoût
   négligeable mais optimisable via `lru_cache(1)` plus tard si
   observé en profiling.
+
+---
+
+## ADR-29 — CircuitBreaker async-first state machine
+
+**Date** : 2026-04-30 (Phase 9L)
+
+**Contexte** : V9 dépend de plusieurs services externes (Stripe,
+Hostinger, Anthropic, OpenAI, Resend, Postgres). Une défaillance
+prolongée d'un seul provoque potentiellement :
+- Saturation du pool asyncio (calls qui pendent au timeout TCP par
+  défaut → 60s+).
+- Erreurs en cascade propagées vers le user (paywall down → revenu
+  perdu).
+- Coût AI explosé (retries qui ne marcheront pas).
+
+Pattern industrie : **circuit breaker** type Hystrix. Mais la majorité
+des libs Python (`pybreaker`, `circuitbreaker`) sont thread-based, pas
+async-native, et utilisent `threading.Lock` qui force un context switch
+hors event loop.
+
+**Décision** : implémentation locale `CircuitBreaker` async-first :
+
+1. **`asyncio.Lock`** au lieu de `threading.Lock`. Cohérent avec le
+   reste du codebase (FastAPI + asyncpg + httpx async).
+2. **State machine 3 états** : CLOSED (nominal), OPEN (fail-fast),
+   HALF_OPEN (recovery probe). Toutes les transitions sous lock.
+3. **`expected_exceptions: tuple[type, ...]`** : seules ces exceptions
+   font monter `consecutive_failures`. Un `TypeError` interne (bug
+   logique du wrapper) ne doit pas ouvrir le circuit Stripe.
+4. **`half_open_max_calls`** : limite le burst de probe calls quand on
+   sort d'un OPEN. Évite que 1000 requêtes en attente ne se ruent
+   simultanément sur le service qui revient.
+5. **Stats observabilité** : `total_calls`, `total_successes`,
+   `total_failures`, `total_rejections`, `state_transitions`,
+   `last_failure_message`. Intégrable directement dans V9Metrics
+   (Phase 9K).
+6. **`reset()` admin override** : pour cas où un opérateur sait que
+   le service est revenu et veut court-circuiter le cooldown.
+
+**Justifications** :
+- **Pas de dépendance externe** : `pybreaker` ajouterait une lib +
+  thread overhead. Le code custom fait 240 LOC, testé à 99%.
+- **Exception filtering** : crucial pour ne pas mélanger bugs locaux
+  et défaillances externes. Les libs standard ne le font pas
+  proprement.
+- **In-memory, par-process** : pas de coordination cross-replicas.
+  Acceptable car les workers FastAPI sont éphémères, et chaque worker
+  ouvre son CB en quelques calls de toute façon. Distributed CB =
+  V10 (Redis-backed).
+
+**Conséquences** :
+- Tous les call-sites externes V9 (Stripe, Hostinger, Anthropic,
+  OpenAI, Resend, DB) doivent être wrappés par un CB issu du
+  catalogue `RESILIENCE_POLICIES` plutôt que d'instancier des CB
+  ad-hoc.
+- Tuning des seuils centralisé dans `policies.py`. Si on observe que
+  Stripe est plus stable, on relâche `failure_threshold` à un seul
+  endroit.
+- Stats CB exposables via `/admin/resilience/cb` ou directement
+  comme labels Prometheus (intégration future avec V9Metrics).
+- Trade-off accepté : un redémarrage de pod = retour à CLOSED. Pas
+  de persistence d'état. L'état réel converge en quelques calls.
+
+---
+
+## ADR-30 — Chaos engineering offline-only avec gate env
+
+**Date** : 2026-04-30 (Phase 9L)
+
+**Contexte** : Phase 9L livre `ChaosInjector` qui peut injecter des
+défaillances arbitraires (timeout, error, connection reset, partial
+data). Cet outil est utile pour :
+- Tests unitaires/intégration qui veulent vérifier la résilience.
+- Drills staging où un opérateur lance un scénario contrôlé.
+
+**Risque critique** : qu'un commit accidentel laisse `ChaosInjector`
+actif en prod, ou qu'un import implicite déclenche du chaos en
+production. Le coût d'une fuite chaos en prod = downtime payant.
+
+**Décision** : double garde-fou.
+
+1. **Gate env obligatoire** : `ChaosInjector.__init__` vérifie
+   `os.environ["UBA_CHAOS_ENABLED"] == "1"`. Sinon → lève
+   `ChaosDisabledError` à l'instanciation. Pas de fallback silencieux.
+2. **Override explicite tests-only** : le param `enabled=True` permet
+   aux tests de bypass la gate. Documenté dans le docstring comme
+   "tests only", impossible à set par accident en prod (le code prod
+   ne devrait jamais passer `enabled=True`).
+3. **Refus en prod** : la doc + `MEMORY.md` + ADR-30 stipulent que
+   `UBA_CHAOS_ENABLED=1` ne doit **jamais** être mis en environnement
+   prod. Le déploiement Kubernetes whitelist explicitement les env
+   vars autorisées (cf. `deploy/k8s/configmap.yaml`).
+
+**Justifications** :
+- **Defense in depth** : 3 couches (gate env, override explicite,
+  whitelist deploy). Casser les 3 = action délibérée, pas un accident.
+- **Pas de feature flag DB** : le chaos n'est pas un feature flag
+  business, c'est un outil ops. Le mettre dans la DB ouvrirait la
+  porte à un toggle accidentel via UI admin. L'env var force un
+  redéploiement explicite.
+- **Pas de mode "chaos en prod"** : V9 ne supporte pas le chaos
+  engineering en prod (canary deploys), seulement staging. Si besoin
+  futur, une refonte avec scope/percentage par tenant sera nécessaire.
+
+**Conséquences** :
+- Les tests passent toujours `enabled=True`. C'est verbose mais
+  explicite.
+- Les drills staging nécessitent `kubectl set env deploy/api
+  UBA_CHAOS_ENABLED=1 && kubectl rollout restart deploy/api`. Pas
+  toggle à chaud — c'est voulu pour qu'un drill soit une opération
+  consciente.
+- Si un dev oublie le gate dans un test, le test crash immédiat avec
+  `ChaosDisabledError` clair → easy fix.
+- L'option future "chaos canary en prod" nécessitera un nouveau
+  pattern (probabilité par request_id, scope tenant, etc.) — et un
+  nouvel ADR. Hors scope V9.
