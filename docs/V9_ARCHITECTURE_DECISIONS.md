@@ -927,3 +927,66 @@ mutables avec contraintes) :
   les triggers sont bien actifs (smoke test pré-déploiement).
 - Tests offline ne valident pas réellement les triggers (asyncpg mocké).
   La suite `production_readiness` Postgres-réel les couvrira.
+
+---
+
+## ADR-24 — Consolidation FK rétroactives data-aware (Phase 9P)
+
+**Date** : 2026-04-30 (Phase 9P)
+
+**Contexte** : Phase 9P doit ajouter des FK `project_id → projects` sur
+11 tables qui utilisaient `TEXT` libre depuis 9C/9D/9E/9G/9H. ADR-15
+prévoyait cette consolidation. Le défi : 
+
+1. **Type mismatch** : la colonne actuelle est `TEXT`, le PK cible est
+   `UUID`. `ALTER COLUMN ... TYPE UUID USING project_id::uuid` plante
+   sur toute valeur non-UUID.
+2. **Données orphelines** : si des tests/dev ont inséré des `project_id`
+   arbitraires (e.g. "proj-test-1"), la FK refuserait l'`ADD CONSTRAINT`.
+3. **Concurrence prod** : `ALTER COLUMN` prend `ACCESS EXCLUSIVE` lock —
+   bloque les writes le temps de la conversion.
+
+**Décision** : pattern data-aware en 3 étapes par table :
+
+```sql
+-- 1. Cleanup orphans (text-equality safe pour tout)
+DELETE FROM <table>
+ WHERE project_id NOT IN (SELECT project_id::text FROM projects);
+
+-- 2. ALTER COLUMN TEXT -> UUID (apres cleanup, USING ne plantera pas)
+ALTER TABLE <table>
+    ALTER COLUMN project_id TYPE UUID USING project_id::uuid;
+
+-- 3. ADD CONSTRAINT FK
+ALTER TABLE <table>
+    ADD CONSTRAINT fk_<short>_project
+    FOREIGN KEY (project_id) REFERENCES projects(project_id);
+```
+
+**Justifications** :
+- **Idempotency** : si la migration est rejouée, le DELETE et l'ADD
+  CONSTRAINT échoueraient (CONSTRAINT existe déjà). Acceptable car
+  les migrations sont append-only et tracées dans la table de
+  migration tracker.
+- **Cleanup safe** : la comparaison `project_id NOT IN (SELECT
+  project_id::text FROM projects)` est text-vs-text. Fonctionne pour
+  toutes les valeurs présentes (UUID-as-text, strings arbitraires,
+  NULL — exclu par WHERE).
+- **Lock minimisé** : chaque table fait son ALTER en isolation. Les
+  tables sont petites en ce début de prod ; la conversion sera quasi-
+  instantanée. Pour des tables à millions de rows, prévoir une fenêtre
+  de maintenance.
+- **Pas de transaction enveloppante** : volontairement pas de `BEGIN;
+  COMMIT;` autour des 11 tables. Si une étape échoue, on a un état
+  partiellement migré documenté dans `evidence_ledger`.
+
+**Conséquences** :
+- En production, lancer cette migration pendant une fenêtre OFF :
+  `ssh prod "psql -c 'BEGIN; \\i migrations/049_consolidation.sql; COMMIT;'"`
+  pour wrapping transactionnel manuel si besoin.
+- Tous les tests E2E (Phase 9R) restent compatibles : ils utilisent
+  des UUID littéraux pour les `project_id`.
+- Phase 9P-bis future : drop `handoff_pending.magic_link_token` une fois
+  la fenêtre de dépréciation passée et `direct_link_id` backfillé.
+- View `v_project_consolidated_status` ajoutée pour l'admin dashboard
+  — agrège 7 métriques par projet en 1 SELECT.
