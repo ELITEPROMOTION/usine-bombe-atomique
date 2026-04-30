@@ -990,3 +990,118 @@ ALTER TABLE <table>
   la fenêtre de dépréciation passée et `direct_link_id` backfillé.
 - View `v_project_consolidated_status` ajoutée pour l'admin dashboard
   — agrège 7 métriques par projet en 1 SELECT.
+
+---
+
+## ADR-25 — GDPR strict treatment pour tous les pays (pas de detect-by-law)
+
+**Date** : 2026-04-30 (Phase 9I)
+
+**Contexte** : Phase 9I doit gérer la conformité légale dans 50+ pays.
+Plusieurs juridictions ont leurs propres lois (GDPR EU, CCPA US, LGPD
+BR, PIPL CN, Loi DZ 18-07, etc.). Trois options :
+
+1. **Detect-by-country** : table `country_compliance` mappant chaque
+   pays à un set de lois ; appliquer le treatment juste-suffisant.
+2. **GDPR strict pour tous** : appliquer GDPR partout, "highest
+   standard wins".
+3. **Hybride** : GDPR par défaut, override par pays si exigence stricte.
+
+**Décision** : option **2** (GDPR strict pour tous).
+
+**Justifications** :
+- **Simplicité opérationnelle** : 1 set de règles, 1 path de code, 1
+  set de documents légaux à maintenir.
+- **Pas de regression risk** : un client en Algérie qui obtient le
+  treatment GDPR ne peut pas se plaindre — il a *plus* de droits que
+  ce que la Loi DZ 18-07 lui donne.
+- **Cross-border simplification** : les data flows EU → autre pays
+  sont conformes par construction (les autres pays peuvent recevoir
+  GDPR-treated data sans souci).
+- **Anti-classification-bug** : un bug qui mis-classifie un user
+  (e.g. "FR" → "ZZ" dévaluant le treatment) serait une violation
+  GDPR. Avec strict-pour-tous, impossible.
+- **Coût minimal** : les exigences "supplémentaires" GDPR (export,
+  erasure, consent revoke) sont déjà du code utile en général.
+
+**Limitations acceptées** :
+- **CCPA "right to opt-out of sale"** spécifique non implémenté. UBA
+  Studio ne vend pas de data, donc pas pertinent.
+- **PIPL "data localization"** : si un client chinois exige données
+  hébergées en CN, c'est un déploiement spécifique (option payante,
+  Phase entreprise future).
+- **Loi DZ 18-07 "déclaration ANIRT"** : à faire par UBA en tant que
+  data controller, pas par client. Hors scope code.
+
+**Conséquences** :
+- Pas de table `country_compliance` à maintenir.
+- Privacy Policy mentionne GDPR (et ses équivalents par locale) sans
+  enumerer chaque loi nationale.
+- Si plus tard un grand compte exige un treatment particulier (e.g.
+  "données hébergées exclusivement en Allemagne"), c'est un projet
+  spécifique avec sa propre instance.
+
+---
+
+## ADR-26 — Erasure préserve l'audit trail immutable (Art 17§3)
+
+**Date** : 2026-04-30 (Phase 9I)
+
+**Contexte** : GDPR Article 17 demande la suppression des données
+personnelles. Mais Article 17§3 l'exclut quand le traitement est
+nécessaire « à des fins (...) d'une obligation légale ». Question :
+quels champs supprimer / anonymiser, et que conserver ?
+
+Tables impliquées dans la V9 et leur statut :
+
+| Table | Contient PII ? | Obligation légale ? |
+|---|---|---|
+| `projects` | ✅ owner_email, company_name | Non |
+| `payments` | ✅ owner_email | ✅ 10 ans (fiscal) |
+| `invoices` | ✅ owner_email, description | ✅ 10 ans (fiscal) |
+| `handoff_requests` | ✅ target_email | Non |
+| `client_onboarding_sessions` | ✅ partial_data_json | Non |
+| `mandates` | ❌ (UUID + hash) | ✅ eIDAS (durée vie + 7 ans) |
+| `evidence_ledger` | ❌ (preuves cryptographiques) | ✅ SOC 2 (7 ans) |
+| `admin_actions` | ❌ (admin_id pseudonyme) | ✅ SOC 2 (7 ans) |
+| `ai_decisions_log` | ❌ (prompt_hash, pas raw) | ✅ FinOps audit (3 ans) |
+| `audit_events` | ❌ (events système) | ✅ SOC 2 (7 ans) |
+
+**Décision** : approche **anonymisation hybride** :
+
+1. **Tables avec PII et SANS obligation légale** → anonymise les
+   colonnes PII en place, conserve les FK :
+   - `projects.owner_email` → `erased@redacted.local`
+   - `projects.company_name` → `[ERASED]`
+   - `projects.summary_json` → `{"erased": true}`
+   - `handoff_requests.target_email` → `erased@redacted.local`
+   - `client_onboarding_sessions.owner_email` + `partial_data_json`
+
+2. **Tables avec PII ET obligation légale** → anonymise mais conserve
+   les autres champs (montants, dates) :
+   - `payments.owner_email` → anonymise
+   - `invoices.owner_email` + `description` → anonymise
+
+3. **Tables d'audit immutable** → **AUCUNE modification**. Justification
+   Art 17§3. Ces tables ont déjà des triggers `BEFORE UPDATE` qui
+   bloqueraient toute tentative.
+
+**Justifications** :
+- **Cryptographic chain integrity** : `mandates.chain_hash` et
+  `evidence_ledger.chain_hash` perdraient leur valeur de preuve si
+  modifiés. La signature serait invalide.
+- **Audit forensique** : un litige fiscal/fraude pourrait nécessiter
+  l'historique complet 7 ans. Les hashs ne sont pas PII.
+- **Anonymisation suffit** : les colonnes anonymisées rendent
+  impossible de re-identifier un user (pas de email, pas de nom).
+
+**Conséquences** :
+- Le user reçoit (lors de la confirmation d'erasure) le message :
+  "Vos données personnelles ont été anonymisées. L'audit trail technique
+  est conservé pendant 7 ans sous obligation légale (Art 17§3 GDPR).
+  Aucune information personnelle ne peut en être extraite."
+- Si un attaquant compromet la DB plus tard, il ne peut pas re-identifier
+  le user erased — son email n'est plus stocké nulle part.
+- Le `request_id` UUID dans `data_erasure_requests` reste pour
+  traçabilité (preuve qu'on a bien traité la demande, conservée 6 ans
+  RGPD).
