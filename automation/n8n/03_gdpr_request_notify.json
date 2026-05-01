@@ -1,0 +1,63 @@
+{
+  "name": "UBA — GDPR request notify (export / erasure)",
+  "_uba": {
+    "phase": "9Q",
+    "purpose": "Notifie ops + DPO quand un client soumet une demande GDPR via /client/profile/gdpr/*",
+    "trigger": "webhook (UBA emits 'gdpr.request_submitted')",
+    "consumes": ["POST /n8n-webhook/gdpr"],
+    "produces": ["Slack #compliance + email DPO"]
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "uba-gdpr-request",
+        "responseMode": "lastNode"
+      },
+      "id": "wh",
+      "name": "Webhook UBA gdpr.request_submitted",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "url": "{{$env.SLACK_WEBHOOK_COMPLIANCE}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"text\": \":lock: GDPR {{$json.kind}} request: project {{$json.project_id}} (client {{$json.requester_email}}). Request ID: {{$json.request_id}}. {{$json.executable_after ? '\\nExecutable after: ' + $json.executable_after : ''}}\"\n}"
+      },
+      "id": "slack",
+      "name": "Notify #compliance Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 180]
+    },
+    {
+      "parameters": {
+        "url": "https://api.resend.com/emails",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.RESEND_API_KEY}}"
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"UBA DPO <dpo@ubastudio.io>\",\n  \"to\": [\"{{$env.DPO_EMAIL}}\"],\n  \"subject\": \"GDPR {{$json.kind}} request — project {{$json.project_id}}\",\n  \"html\": \"<p>Demande {{$json.kind}} enregistree.</p><ul><li>Request ID: <code>{{$json.request_id}}</code></li><li>Client: {{$json.requester_email}}</li><li>Project: {{$json.project_id}}</li>{{$json.executable_after ? '<li>Executable after: ' + $json.executable_after + '</li>' : ''}}</ul>\"\n}"
+      },
+      "id": "mail",
+      "name": "Email DPO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 320]
+    }
+  ],
+  "connections": {
+    "Webhook UBA gdpr.request_submitted": {
+      "main": [[
+        { "node": "Notify #compliance Slack", "type": "main", "index": 0 },
+        { "node": "Email DPO", "type": "main", "index": 0 }
+      ]]
+    }
+  }
+}

@@ -14,6 +14,7 @@ from app.routers import (
     analytics,
     auth,
     autonomy,
+    client as client_router,
     cognition,
     dehardcoding,
     domains,
@@ -105,5 +106,10 @@ app.include_router(
     quality_gates_router.router,
     prefix=f"{settings.API_PREFIX}/projects",
     tags=["quality_gates_v8_5"],
+)
+app.include_router(
+    client_router.router,
+    prefix=f"{settings.API_PREFIX}",
+    tags=["client_v9_m_bis"],
 )
 app.include_router(websocket.router, tags=["ws"])

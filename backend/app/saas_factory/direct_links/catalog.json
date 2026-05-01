@@ -1,0 +1,157 @@
+{
+  "version": "1.0.0",
+  "actions": {
+    "kyc_validation": {
+      "default_ttl_seconds": 259200,
+      "single_use": true,
+      "requires_mandate": true,
+      "callback_path": "/handoff/kyc",
+      "icon": "shield-check",
+      "locales": {
+        "en": {
+          "title": "Complete your KYC",
+          "description": "We need a brief identity verification to activate {service}. It takes less than 5 minutes.",
+          "cta_label": "Start KYC"
+        },
+        "fr": {
+          "title": "Validez votre KYC",
+          "description": "Une verification d'identite courte est requise pour activer {service}. Comptez moins de 5 minutes.",
+          "cta_label": "Demarrer le KYC"
+        }
+      }
+    },
+    "card_setup": {
+      "default_ttl_seconds": 259200,
+      "single_use": true,
+      "requires_mandate": true,
+      "callback_path": "/handoff/card",
+      "icon": "credit-card",
+      "locales": {
+        "en": {
+          "title": "Add a payment card",
+          "description": "Add a payment method for {service}. No amount is charged at this step.",
+          "cta_label": "Add card"
+        },
+        "fr": {
+          "title": "Ajouter une carte",
+          "description": "Ajoutez un moyen de paiement pour {service}. Aucun montant n'est preleve a cette etape.",
+          "cta_label": "Ajouter la carte"
+        }
+      }
+    },
+    "manual_step": {
+      "default_ttl_seconds": 259200,
+      "single_use": true,
+      "requires_mandate": false,
+      "callback_path": "/handoff/manual",
+      "icon": "hand-pointing",
+      "locales": {
+        "en": {
+          "title": "Action required",
+          "description": "A short manual step is required for {service}.",
+          "cta_label": "Open"
+        },
+        "fr": {
+          "title": "Action requise",
+          "description": "Une etape manuelle est requise pour {service}.",
+          "cta_label": "Ouvrir"
+        }
+      }
+    },
+    "deliverable_download": {
+      "default_ttl_seconds": 604800,
+      "single_use": false,
+      "requires_mandate": false,
+      "callback_path": "/deliverables/download",
+      "icon": "download",
+      "locales": {
+        "en": {
+          "title": "Your deliverable is ready",
+          "description": "Download {project_name} produced by UBA Studio. Link expires in 7 days.",
+          "cta_label": "Download"
+        },
+        "fr": {
+          "title": "Votre livrable est pret",
+          "description": "Telechargez {project_name} genere par UBA Studio. Lien valable 7 jours.",
+          "cta_label": "Telecharger"
+        }
+      }
+    },
+    "payment_confirm": {
+      "default_ttl_seconds": 86400,
+      "single_use": true,
+      "requires_mandate": false,
+      "callback_path": "/billing/checkout",
+      "icon": "lock",
+      "locales": {
+        "en": {
+          "title": "Confirm your payment",
+          "description": "Finalise the payment for {project_name} to start production.",
+          "cta_label": "Pay securely"
+        },
+        "fr": {
+          "title": "Confirmer le paiement",
+          "description": "Finalisez le paiement de {project_name} pour lancer la production.",
+          "cta_label": "Payer en securite"
+        }
+      }
+    },
+    "domain_validation": {
+      "default_ttl_seconds": 172800,
+      "single_use": true,
+      "requires_mandate": false,
+      "callback_path": "/infra/domain/confirm",
+      "icon": "globe",
+      "locales": {
+        "en": {
+          "title": "Confirm your domain",
+          "description": "Confirm that {domain} is the correct production domain.",
+          "cta_label": "Confirm domain"
+        },
+        "fr": {
+          "title": "Confirmez votre domaine",
+          "description": "Confirmez que {domain} est bien le domaine de production.",
+          "cta_label": "Confirmer le domaine"
+        }
+      }
+    },
+    "email_verification": {
+      "default_ttl_seconds": 86400,
+      "single_use": true,
+      "requires_mandate": false,
+      "callback_path": "/auth/email/verify",
+      "icon": "mail",
+      "locales": {
+        "en": {
+          "title": "Verify your email",
+          "description": "Click below to verify your email address.",
+          "cta_label": "Verify email"
+        },
+        "fr": {
+          "title": "Verifiez votre email",
+          "description": "Cliquez ci-dessous pour verifier votre adresse email.",
+          "cta_label": "Verifier l'email"
+        }
+      }
+    },
+    "account_unlock": {
+      "default_ttl_seconds": 3600,
+      "single_use": true,
+      "requires_mandate": false,
+      "callback_path": "/auth/account/unlock",
+      "icon": "unlock",
+      "locales": {
+        "en": {
+          "title": "Unlock your account",
+          "description": "Use this one-time link to regain access to your account.",
+          "cta_label": "Unlock account"
+        },
+        "fr": {
+          "title": "Deverrouiller votre compte",
+          "description": "Utilisez ce lien a usage unique pour retrouver l'acces a votre compte.",
+          "cta_label": "Deverrouiller"
+        }
+      }
+    }
+  }
+}

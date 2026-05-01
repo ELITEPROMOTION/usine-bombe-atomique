@@ -1,0 +1,88 @@
+{
+  "name": "UBA — Churn alert (no activity 14d)",
+  "_uba": {
+    "phase": "9Q",
+    "purpose": "Detecte les projets actifs sans activity (audit_events) depuis 14j et alerte sales",
+    "trigger": "cron @daily 08:30",
+    "consumes": ["GET /api/v1/admin/projects/inactive?days=14"],
+    "produces": ["Slack #sales + open client.notified handoff"]
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "30 8 * * *" }] }
+      },
+      "id": "cron",
+      "name": "Cron 08:30 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/projects/inactive?days=14",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        }
+      },
+      "id": "fetch",
+      "name": "Fetch inactive projects",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 240]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data"
+      },
+      "id": "split",
+      "name": "Per inactive",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [720, 240]
+    },
+    {
+      "parameters": {
+        "url": "{{$env.SLACK_WEBHOOK_SALES}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"text\": \":chart_with_downwards_trend: Churn signal — *{{$json.company_name}}* ({{$json.owner_email}}) : 0 activity since {{$json.last_activity_at}}. Project ID: {{$json.project_id}}\"\n}"
+      },
+      "id": "slack",
+      "name": "Notify #sales Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 180]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/handoffs",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"project_id\": \"{{$json.project_id}}\",\n  \"action_type\": \"client_check_in\",\n  \"target_email\": \"{{$json.owner_email}}\",\n  \"title\": \"Checking in\",\n  \"body\": \"Notre equipe va vous contacter pour faire le point sur votre projet.\"\n}"
+      },
+      "id": "handoff",
+      "name": "Open check_in handoff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 320]
+    }
+  ],
+  "connections": {
+    "Cron 08:30 UTC":         { "main": [[{ "node": "Fetch inactive projects", "type": "main", "index": 0 }]] },
+    "Fetch inactive projects":{ "main": [[{ "node": "Per inactive",            "type": "main", "index": 0 }]] },
+    "Per inactive": {
+      "main": [[
+        { "node": "Notify #sales Slack",  "type": "main", "index": 0 },
+        { "node": "Open check_in handoff", "type": "main", "index": 0 }
+      ]]
+    }
+  }
+}
