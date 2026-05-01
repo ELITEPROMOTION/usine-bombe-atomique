@@ -22,6 +22,7 @@ import { ClientDashboardPage } from "@/pages/client/ClientDashboardPage";
 import { ClientDeliverablesPage } from "@/pages/client/ClientDeliverablesPage";
 import { ClientPaymentsPage } from "@/pages/client/ClientPaymentsPage";
 import { ClientProfilePage } from "@/pages/client/ClientProfilePage";
+import { StyleguidePage } from "@/pages/StyleguidePage";
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="tasks/:id" element={<ProgressPage />} />
             <Route path="tasks/:id/results" element={<ResultsPage />} />
+            <Route path="styleguide" element={<StyleguidePage />} />
           </Route>
           <Route path="client" element={<ClientShell />}>
             <Route index element={<ClientDashboardPage />} />
