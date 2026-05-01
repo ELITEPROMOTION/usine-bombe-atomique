@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -53,7 +53,7 @@ class InjectedDeliverable:
     direct_link_id: UUID
     url: str
     expires_at: datetime
-    issued_at: datetime = field(default_factory=lambda: datetime.now(tz=None))
+    issued_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class DeliverableLinkInjector:

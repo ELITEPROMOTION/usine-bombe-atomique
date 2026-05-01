@@ -1,0 +1,10 @@
+fix available via `npm audit fix --force`
+Will install postcss@8.5.13, which is outside the stated dependency range
+node_modules/postcss
+
+
+
+9 vulnerabilities (2 low, 2 moderate, 5 high)
+
+To address all issues, run:
+  npm audit fix --force

@@ -1,0 +1,48 @@
+warning: `one-blank-line-before-class` (D203) and `no-blank-line-before-class` (D211) are incompatible. Ignoring `one-blank-line-before-class`.
+warning: `multi-line-summary-first-line` (D212) and `multi-line-summary-second-line` (D213) are incompatible. Ignoring `multi-line-summary-second-line`.
+163	TRY003 	[ ] raise-vanilla-args
+162	D101   	[ ] undocumented-public-class
+121	D102   	[ ] undocumented-public-method
+105	EM102  	[*] f-string-in-exception
+ 67	D107   	[ ] undocumented-public-init
+ 63	EM101  	[*] raw-string-in-exception
+ 56	TCH003 	[*] typing-only-standard-library-import
+ 52	COM812 	[*] missing-trailing-comma
+ 35	TCH002 	[*] typing-only-third-party-import
+ 32	ANN401 	[ ] any-type
+ 28	D103   	[ ] undocumented-public-function
+ 26	PLR2004	[ ] magic-value-comparison
+ 20	TCH001 	[*] typing-only-first-party-import
+ 20	D401   	[ ] non-imperative-mood
+ 16	ARG002 	[ ] unused-method-argument
+ 10	PLR0913	[ ] too-many-arguments
+  8	D205   	[ ] blank-line-after-summary
+  7	BLE001 	[ ] blind-except
+  5	D105   	[ ] undocumented-magic-method
+  4	D204   	[*] one-blank-line-after-class
+  4	TRY300 	[ ] try-consider-else
+  3	ERA001 	[*] commented-out-code
+  3	PLW0603	[ ] global-statement
+  2	RET504 	[*] unnecessary-assign
+  2	ARG001 	[ ] unused-function-argument
+  2	E501   	[ ] line-too-long
+  2	D400   	[ ] ends-in-period
+  2	PLR0911	[ ] too-many-return-statements
+  2	TRY401 	[ ] verbose-log-message
+  1	ANN001 	[ ] missing-type-function-argument
+  1	ANN201 	[ ] missing-return-type-undocumented-public-function
+  1	ANN204 	[*] missing-return-type-special-method
+  1	S105   	[ ] hardcoded-password-string
+  1	S107   	[ ] hardcoded-password-default
+  1	S311   	[ ] suspicious-non-cryptographic-random-usage
+  1	A001   	[ ] builtin-variable-shadowing
+  1	DTZ005 	[ ] call-datetime-now-without-tzinfo
+  1	RET501 	[*] unnecessary-return-none
+  1	C901   	[ ] complex-structure
+  1	N818   	[ ] error-suffix-on-exception-name
+  1	PERF401	[ ] manual-list-comprehension
+  1	D403   	[*] first-line-capitalized
+  1	D415   	[*] ends-in-punctuation
+  1	PLR0912	[ ] too-many-branches
+  1	PLR1711	[*] useless-return
+[*] fixable with `ruff check --fix`

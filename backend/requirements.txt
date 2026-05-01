@@ -1,32 +1,34 @@
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-pydantic[email]==2.9.2
-pydantic-settings==2.6.0
-email-validator==2.2.0
-asyncpg==0.30.0
-redis==5.2.0
-arq==0.26.1
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.2.1
-python-multipart==0.0.12
-httpx==0.27.2
-anthropic==0.39.0
-structlog==24.4.0
-prometheus-client==0.21.0
-ruff==0.7.2
-bandit==1.7.10
-radon==6.0.1
-pytest==8.3.3
-pytest-asyncio==0.24.0
-pytest-json-report==1.5.0
-pytest-cov==7.1.0
-hypothesis==6.152.1
-faker==40.15.0
-websocket-client==1.8.0
-hvac==2.3.0
-pgvector==0.3.6
-playwright==1.48.0
-pyyaml==6.0.2
-python-docx==1.1.2
-networkx==3.4.2
+# Phase audit V9 — versions bumped pour CVEs (pip-audit 2026-05)
+fastapi>=0.115.0,<0.121.0
+starlette>=0.40.0,<0.50.0           # CVE-2024-47874, CVE-2025-54121
+uvicorn[standard]>=0.32.0
+pydantic[email]>=2.9.2
+pydantic-settings>=2.6.0
+email-validator>=2.2.0
+asyncpg>=0.30.0
+redis>=5.2.0
+arq>=0.26.1
+python-jose[cryptography]>=3.4.0    # PYSEC-2024-232, PYSEC-2024-233
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.2.1
+python-multipart>=0.0.18            # CVE-2024-53981, CVE-2026-24486, CVE-2026-40347
+httpx>=0.27.2
+anthropic>=0.39.0
+structlog>=24.4.0
+prometheus-client>=0.21.0
+ruff>=0.7.2
+bandit>=1.7.10
+radon>=6.0.1
+pytest>=8.3.3,<10.0.0               # CVE-2025-71176 fixed in 9.0.3
+pytest-asyncio>=0.24.0
+pytest-json-report>=1.5.0
+pytest-cov>=7.1.0
+hypothesis>=6.152.1
+faker>=40.15.0
+websocket-client>=1.8.0
+hvac>=2.3.0
+pgvector>=0.3.6
+playwright>=1.48.0
+pyyaml>=6.0.2
+python-docx>=1.1.2
+networkx>=3.4.2
