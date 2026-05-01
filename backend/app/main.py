@@ -7,14 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import close_pool, init_pool
+from app.health.router import router as health_v2_router
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.middleware.tenant import TenantMiddleware
+from app.observability import otel_setup
 from app.routers import (
     ahmed_inbox,
     analytics,
     auth,
     autonomy,
-    client as client_router,
     cognition,
     dehardcoding,
     domains,
@@ -25,7 +26,6 @@ from app.routers import (
     osint,
     projects,
     provisioning,
-    quality_gates as quality_gates_router,
     resilience,
     slo,
     tasks,
@@ -33,8 +33,33 @@ from app.routers import (
     websocket,
     workflows,
 )
-from app.health.router import router as health_v2_router
-from app.observability import otel_setup
+from app.routers import (
+    client as client_router,
+)
+from app.routers import (
+    quality_gates as quality_gates_router,
+)
+from app.routers.admin import (
+    ai as admin_ai,
+)
+from app.routers.admin import (
+    direct_links as admin_direct_links,
+)
+from app.routers.admin import (
+    handoffs as admin_handoffs,
+)
+from app.routers.admin import (
+    onboarding as admin_onboarding,
+)
+from app.routers.admin import (
+    payments as admin_payments,
+)
+from app.routers.admin import (
+    projects as admin_projects,
+)
+from app.routers.admin import (
+    setup_wizard as admin_setup_wizard,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -112,4 +137,14 @@ app.include_router(
     prefix=f"{settings.API_PREFIX}",
     tags=["client_v9_m_bis"],
 )
+
+# Phase 9N admin routers — wires the /admin/* dashboard endpoints.
+# Phase 2 V9 prod : ajoute le router payments (workflow n8n 04).
+for _r in (
+    admin_ai.router, admin_handoffs.router, admin_projects.router,
+    admin_direct_links.router, admin_setup_wizard.router,
+    admin_onboarding.router, admin_payments.router,
+):
+    app.include_router(_r, prefix=f"{settings.API_PREFIX}", tags=["admin_v9"])
+
 app.include_router(websocket.router, tags=["ws"])

@@ -65,6 +65,36 @@ async def list_projects(
     return [ProjectListItem(**dict(r)) for r in rows]
 
 
+@router.get("/inactive", response_model=list[ProjectListItem])
+async def list_inactive_projects(
+    _admin: AdminDep,
+    pool: PoolDep,
+    days: int = Query(default=14, ge=1, le=365),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[ProjectListItem]:
+    """Phase 2 V9 — Projets actifs sans audit_event depuis N jours.
+
+    Consomme par n8n workflow 06 (churn alert).
+    """
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT p.project_id, p.owner_email, p.company_name,
+                   p.pack_id_hint, p.title, p.status, p.created_at
+              FROM projects p
+             WHERE p.status NOT IN ('cancelled', 'archived')
+               AND NOT EXISTS (
+                   SELECT 1 FROM audit_events ae
+                    WHERE ae.payload_json->>'project_id' = p.project_id::text
+                      AND ae.created_at > NOW() - ($1 || ' days')::interval
+               )
+             ORDER BY p.updated_at ASC
+             LIMIT $2
+            """, str(days), limit,
+        )
+    return [ProjectListItem(**dict(r)) for r in rows]
+
+
 @router.patch(
     "/{project_id}/status",
     response_model=AuditedActionResponse,

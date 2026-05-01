@@ -29,7 +29,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route element={<AuthGuard />}>
+        <Route element={<AuthGuard requiredIssuer="uba-studio/admin" fallbackPath="/client" />}>
           <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
             <Route path="ceo" element={<CeoPage />} />
@@ -48,6 +48,8 @@ export default function App() {
             <Route path="tasks/:id/results" element={<ResultsPage />} />
             <Route path="styleguide" element={<StyleguidePage />} />
           </Route>
+        </Route>
+        <Route element={<AuthGuard requiredIssuer="uba-studio/client" fallbackPath="/" />}>
           <Route path="client" element={<ClientShell />}>
             <Route index element={<ClientDashboardPage />} />
             <Route path="deliverables" element={<ClientDeliverablesPage />} />

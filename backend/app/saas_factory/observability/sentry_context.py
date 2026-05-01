@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from functools import lru_cache
 from typing import Any
 from uuid import UUID
 
@@ -22,17 +23,31 @@ def _hash_email(email: str) -> str:
     return hashlib.sha256(email.lower().encode("utf-8")).hexdigest()[:16]
 
 
-def is_sentry_available() -> bool:
-    """True si sentry_sdk est importable ET un client est initialise."""
+@lru_cache(maxsize=1)
+def _sentry_sdk_importable() -> bool:
+    """Cache l'import — l'absence du SDK ne change pas runtime."""
     try:
-        import sentry_sdk
+        import sentry_sdk  # noqa: F401
     except ImportError:
         return False
+    return True
+
+
+def is_sentry_available() -> bool:
+    """True si sentry_sdk est importable ET un client est initialise."""
+    if not _sentry_sdk_importable():
+        return False
     try:
+        import sentry_sdk
         hub = sentry_sdk.Hub.current
         return hub.client is not None
     except (AttributeError, RuntimeError):
         return False
+
+
+def _reset_sentry_cache_for_test() -> None:
+    """Test helper — flush le lru_cache."""
+    _sentry_sdk_importable.cache_clear()
 
 
 def add_project_context(

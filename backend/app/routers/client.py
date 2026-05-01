@@ -20,12 +20,15 @@ Endpoints :
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import Annotated, Final
 from uuid import UUID
 
 import asyncpg
+import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
@@ -190,6 +193,35 @@ class GDPRErasureOut(BaseModel):
 
 
 _CTA_HOST_PREFIX: Final[str] = "/client/handoffs/"
+_N8N_GDPR_WEBHOOK_ENV: Final[str] = "N8N_GDPR_WEBHOOK_URL"
+
+
+async def _fire_and_forget_gdpr_webhook(payload: dict) -> None:
+    """POST asynchrone vers n8n workflow 03 (gdpr_request_notify).
+
+    No-op silencieux si N8N_GDPR_WEBHOOK_URL non configure. Toute
+    erreur est loggee mais n'affecte pas la reponse client.
+    """
+    url = os.environ.get(_N8N_GDPR_WEBHOOK_ENV, "").strip()
+    if not url:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as http:
+            await http.post(url, json=payload)
+    except Exception as exc:
+        logger.debug("n8n gdpr webhook failed: %s", exc)
+
+
+def _emit_gdpr_webhook_bg(kind: str, payload: dict) -> None:
+    """Schedule le webhook sans attendre (fire-and-forget intentionnel)."""
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(  # noqa: RUF006  -- fire-and-forget intentionnel
+            _fire_and_forget_gdpr_webhook({"kind": kind, **payload}),
+        )
+    except RuntimeError:
+        # pas de loop : ignore (e.g. test sync)
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +379,11 @@ async def request_gdpr_export(
         )
     except ProjectNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    _emit_gdpr_webhook_bg("export", {
+        "request_id": out["request_id"],
+        "project_id": str(principal.project_id),
+        "requester_email": principal.sub,
+    })
     return GDPRExportOut(**out)
 
 
@@ -366,4 +403,10 @@ async def request_gdpr_erasure(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except ErasureNotPermittedError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    _emit_gdpr_webhook_bg("erasure", {
+        "request_id": out["request_id"],
+        "executable_after": out["executable_after"],
+        "project_id": str(principal.project_id),
+        "requester_email": principal.sub,
+    })
     return GDPRErasureOut(**out)
