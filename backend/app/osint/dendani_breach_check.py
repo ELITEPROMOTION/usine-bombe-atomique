@@ -82,7 +82,8 @@ async def check_password_pwned(target: str, _actor: str = "scheduler",
     """Anonymous k-anonymity password check (no full hash leak)."""
     if not target:
         raise ScopeViolationError("password manquant")
-    sha1 = hashlib.sha1(target.encode("utf-8")).hexdigest().upper()
+    # HIBP k-anonymity API requires SHA-1 (RFC k-anonymity model, not used for security)
+    sha1 = hashlib.sha1(target.encode("utf-8")).hexdigest().upper()  # noqa: S324  # nosec B324
     prefix, suffix = sha1[:5], sha1[5:]
     async with httpx.AsyncClient(timeout=10.0) as client:
         r = await client.get(f"{PWNEDPW_BASE}/range/{prefix}",
