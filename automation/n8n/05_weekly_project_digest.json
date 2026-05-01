@@ -1,0 +1,70 @@
+{
+  "name": "UBA — Weekly project digest (client)",
+  "_uba": {
+    "phase": "9Q",
+    "purpose": "Envoie chaque lundi un recap a chaque client actif (status != cancelled/archived)",
+    "trigger": "cron @weekly Mon 09:00",
+    "consumes": ["GET /api/v1/admin/projects?status=in_production,paywall_pending,delivered"],
+    "produces": ["Resend email per client"]
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * 1" }] }
+      },
+      "id": "cron",
+      "name": "Mon 09:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/projects?statuses=in_production,paywall_pending,delivered",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        }
+      },
+      "id": "fetch",
+      "name": "Fetch active projects",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 240]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data"
+      },
+      "id": "split",
+      "name": "Per project",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [720, 240]
+    },
+    {
+      "parameters": {
+        "url": "https://api.resend.com/emails",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.RESEND_API_KEY}}"
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"UBA Studio <studio@ubastudio.io>\",\n  \"to\": [\"{{$json.owner_email}}\"],\n  \"subject\": \"UBA Studio · recap hebdomadaire — {{$json.company_name}}\",\n  \"html\": \"<h2>Bonjour {{$json.company_name}}</h2><p>Voici l'avancement de votre projet cette semaine :</p><ul><li>Status: <b>{{$json.status}}</b></li><li>Avancement: <b>{{$json.progress_pct}}%</b></li><li>Prochaine etape: {{$json.next_milestone}}</li></ul><p><a href='{{$env.UBA_WEB_BASE}}/client'>Ouvrir mon espace</a></p>\"\n}"
+      },
+      "id": "send",
+      "name": "Resend digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 240]
+    }
+  ],
+  "connections": {
+    "Mon 09:00 UTC":         { "main": [[{ "node": "Fetch active projects", "type": "main", "index": 0 }]] },
+    "Fetch active projects": { "main": [[{ "node": "Per project",            "type": "main", "index": 0 }]] },
+    "Per project":           { "main": [[{ "node": "Resend digest",          "type": "main", "index": 0 }]] }
+  }
+}

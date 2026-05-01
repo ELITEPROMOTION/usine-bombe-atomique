@@ -1525,3 +1525,70 @@ Conséquences directes :
   reconnecter sans intervention admin. Phase magic-link future
   ajoutera un flow `/auth/client/request-link` qui envoie un mail
   avec un nouveau token.
+
+---
+
+## ADR-34 — n8n pour automatisations récurrentes (vs scheduler interne)
+
+**Date** : 2026-05-01 (Phase 9Q)
+
+**Contexte** : V9 a besoin de plusieurs automatisations récurrentes :
+relance paywall, escalation handoffs, dunning paiement, digest
+hebdomadaire client, churn alert. Question : on les implémente en
+**interne** (job scheduler Python type APScheduler / Celery beat) ou
+on délègue à **n8n** (outil externe self-hosted) ?
+
+Options évaluées :
+1. **APScheduler dans le backend** : un module `app/scheduler/` qui
+   tourne dans le même process FastAPI, jobs définis en Python.
+2. **Celery Beat + worker** : queue Redis, séparation job runner /
+   API, scaling indépendant.
+3. **n8n self-hosted** : workflows JSON visuels, runtime séparé,
+   éditable par non-devs.
+
+**Décision** : option 3 — n8n self-hosted.
+
+**Justifications** :
+
+1. **Itération non-dev** : marketing/ops peuvent ajuster les
+   templates email, les seuils de relance, les jours/heures, sans
+   push code. Critique pour V9 où les copywriting et timing seront
+   testés/itérés en dehors du cycle dev.
+2. **Visualisation** : un ops peut voir le flow en image, suivre
+   l'exécution étape par étape, débugger via les "executions"
+   tab. Coût d'apprentissage opération inférieur à un Celery
+   monitoring stack.
+3. **Failover découplé** : si n8n est down, le backend continue de
+   servir les requêtes API. Seules les automatisations s'arrêtent —
+   on peut les remonter manuellement en attendant. Inverse : un
+   scheduler interne crashe = backend instable.
+4. **Stack ops déjà retenue** : n8n est l'outil que l'équipe ops
+   UBA utilise déjà pour d'autres clients. Cohérence.
+5. **Trade-off coût** : n8n self-hosted = 1 VPS additionnel (~20 €/mo).
+   Acceptable.
+
+**Conséquences** :
+
+- 6 workflows livrés en V9Q : `automation/n8n/*.json`. Chacun
+  pré-câblé sur les endpoints `/api/v1/admin/*` du backend, plus
+  Resend (email) et Slack (notif).
+- Le backend doit exposer **les endpoints admin** dont les workflows
+  ont besoin. Certains existent déjà (handoffs, projects), d'autres
+  manquent (`/admin/payments?status=failed`, `/admin/projects/inactive`).
+  Workflows correspondants documentés comme "à brancher" dans le
+  README, pas activables tant que les endpoints ne sont pas livrés.
+- **Webhook entrant `gdpr.request_submitted`** : workflow 03
+  attend un POST UBA → n8n quand un client soumet une demande GDPR.
+  Le backend `/client/profile/gdpr/*` doit ajouter un fire-and-forget
+  HTTP POST vers l'URL n8n configurée. À ajouter en phase wiring
+  (1 ligne par endpoint).
+- **Pas de n8n dans CI** : les workflows ne sont pas testés en
+  intégration (n8n test mode est lourd). Validation par déclenchement
+  manuel en staging avant activation prod.
+- **Source of truth = JSON dans repo** : on **ne** maintient **pas**
+  les workflows directement dans n8n UI sans synchroniser le JSON.
+  Si un ops modifie depuis l'UI, il doit `n8n export:workflow` et
+  push le JSON. Sinon, perte de versioning Git.
+- **Pas de migration vers job scheduler interne prévue** : n8n est
+  retenu durablement. Si scaling devient un problème (>100 workflows,
+  >1000 exécutions/min), revoir.

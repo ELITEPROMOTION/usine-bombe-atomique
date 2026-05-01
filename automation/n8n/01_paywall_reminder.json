@@ -1,0 +1,71 @@
+{
+  "name": "UBA — Paywall reminder J+1 / J+3",
+  "_uba": {
+    "phase": "9Q",
+    "purpose": "Relance les projets en status paywall_pending depuis >24h via Resend",
+    "trigger": "cron @daily",
+    "consumes": ["GET /api/v1/admin/projects?status=paywall_pending"],
+    "produces": ["Resend email send"]
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * *" }] }
+      },
+      "id": "cron",
+      "name": "Cron 09:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/projects?status=paywall_pending&min_age_hours=24",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        }
+      },
+      "id": "fetch_pending",
+      "name": "Fetch pending projects",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 240]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "fieldToSplitOut": "data"
+      },
+      "id": "split",
+      "name": "Per project",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [720, 240]
+    },
+    {
+      "parameters": {
+        "url": "https://api.resend.com/emails",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.RESEND_API_KEY}}"
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"UBA Studio <studio@ubastudio.io>\",\n  \"to\": [\"{{$json.owner_email}}\"],\n  \"subject\": \"Votre projet UBA Studio attend votre reglement\",\n  \"html\": \"Bonjour,<br>Votre projet <b>{{$json.company_name}}</b> est en attente de paiement. <a href='{{$env.UBA_WEB_BASE}}/client/payments'>Regler maintenant</a>.\"\n}"
+      },
+      "id": "send_mail",
+      "name": "Resend email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 240]
+    }
+  ],
+  "connections": {
+    "Cron 09:00 UTC":          { "main": [[{ "node": "Fetch pending projects", "type": "main", "index": 0 }]] },
+    "Fetch pending projects":  { "main": [[{ "node": "Per project",            "type": "main", "index": 0 }]] },
+    "Per project":             { "main": [[{ "node": "Resend email",           "type": "main", "index": 0 }]] }
+  }
+}

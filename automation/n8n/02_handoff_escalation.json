@@ -1,0 +1,82 @@
+{
+  "name": "UBA — Handoff escalation > 24h",
+  "_uba": {
+    "phase": "9Q",
+    "purpose": "Escale les handoffs ouverts depuis >24h vers Slack #ops",
+    "trigger": "cron @hourly",
+    "consumes": ["GET /api/v1/admin/handoffs?state=requested,notified&min_age_hours=24"],
+    "produces": ["Slack post + UBA admin escalate API"]
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 * * * *" }] }
+      },
+      "id": "cron",
+      "name": "Cron hourly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/handoffs?states=requested,notified&min_age_hours=24",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        }
+      },
+      "id": "fetch",
+      "name": "Fetch open handoffs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data"
+      },
+      "id": "split",
+      "name": "Per handoff",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/handoffs/{{$json.handoff_id}}/escalate",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        }
+      },
+      "id": "escalate",
+      "name": "Escalate via UBA API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "url": "{{$env.SLACK_WEBHOOK_OPS}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"text\": \"⚠ Handoff escalated: {{$json.title}} (project {{$json.project_id}}). <{{$json.cta_url}}|Open>\"\n}"
+      },
+      "id": "slack",
+      "name": "Notify #ops Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1200, 200]
+    }
+  ],
+  "connections": {
+    "Cron hourly":          { "main": [[{ "node": "Fetch open handoffs",  "type": "main", "index": 0 }]] },
+    "Fetch open handoffs":  { "main": [[{ "node": "Per handoff",          "type": "main", "index": 0 }]] },
+    "Per handoff":          { "main": [[{ "node": "Escalate via UBA API", "type": "main", "index": 0 }]] },
+    "Escalate via UBA API": { "main": [[{ "node": "Notify #ops Slack",    "type": "main", "index": 0 }]] }
+  }
+}

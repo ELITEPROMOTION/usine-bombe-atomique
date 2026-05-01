@@ -1,0 +1,70 @@
+{
+  "name": "UBA — Payment retry / dunning",
+  "_uba": {
+    "phase": "9Q",
+    "purpose": "Pour chaque payment.failed > 6h sans retry, ouvre un handoff payment_confirm et envoie un email",
+    "trigger": "cron @hourly",
+    "consumes": ["GET /api/v1/admin/payments?status=failed&min_age_hours=6"],
+    "produces": ["POST /admin/handoffs (payment_confirm) + Resend email"]
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "15 * * * *" }] }
+      },
+      "id": "cron",
+      "name": "Cron @15 minutes past hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/payments?status=failed&min_age_hours=6",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        }
+      },
+      "id": "fetch",
+      "name": "Fetch failed payments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 240]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data"
+      },
+      "id": "split",
+      "name": "Per payment",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [720, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.UBA_API_BASE}}/api/v1/admin/handoffs",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "headerAuth": {
+          "name": "Authorization",
+          "value": "Bearer {{$env.UBA_ADMIN_TOKEN}}"
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"project_id\": \"{{$json.project_id}}\",\n  \"action_type\": \"payment_confirm\",\n  \"target_email\": \"{{$json.owner_email}}\",\n  \"title\": \"Confirmer le paiement\",\n  \"body\": \"Le paiement de {{$json.amount_cents / 100}} {{$json.currency}} a echoue. Cliquez pour reessayer.\"\n}"
+      },
+      "id": "open_handoff",
+      "name": "Open payment_confirm handoff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 240]
+    }
+  ],
+  "connections": {
+    "Cron @15 minutes past hour": { "main": [[{ "node": "Fetch failed payments",      "type": "main", "index": 0 }]] },
+    "Fetch failed payments":      { "main": [[{ "node": "Per payment",                 "type": "main", "index": 0 }]] },
+    "Per payment":                { "main": [[{ "node": "Open payment_confirm handoff","type": "main", "index": 0 }]] }
+  }
+}
