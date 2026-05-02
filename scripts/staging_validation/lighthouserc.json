@@ -1,0 +1,31 @@
+{
+  "_comment": "Lighthouse CI config for V9 staging frontend audit. Usage: npx -y @lhci/cli@latest autorun --config=scripts/staging_validation/lighthouserc.json --collect.url=https://<URL>",
+  "ci": {
+    "collect": {
+      "settings": {
+        "preset": "desktop",
+        "throttlingMethod": "simulate",
+        "onlyCategories": ["performance", "accessibility", "best-practices", "seo"]
+      },
+      "numberOfRuns": 3
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.85 }],
+        "categories:accessibility": ["error", { "minScore": 0.95 }],
+        "categories:best-practices": ["error", { "minScore": 0.90 }],
+        "categories:seo": ["warn", { "minScore": 0.90 }],
+        "uses-https": "error",
+        "is-on-https": "error",
+        "viewport": "error",
+        "errors-in-console": "warn",
+        "no-document-write": "error",
+        "external-anchors-use-rel-noopener": "warn"
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "./.lighthouseci"
+    }
+  }
+}

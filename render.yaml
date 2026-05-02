@@ -1,0 +1,109 @@
+# Render.com Blueprint — V9 staging temporaire (free tier)
+# Doc : https://render.com/docs/blueprint-spec
+#
+# Deploiement :
+# 1. Aller sur https://render.com/, signin avec GitHub.
+# 2. Dashboard -> New + -> Blueprint
+# 3. Connecter le repo ELITEPROMOTION/usine-bombe-atomique
+# 4. Render lit ce fichier et provisionne backend + DB + frontend
+# 5. Apres ~5min, 2 URLs publiques disponibles :
+#    - api : https://uba-staging-api.onrender.com
+#    - app : https://uba-staging-app.onrender.com
+#
+# Free tier limits :
+# - Web service free : 750h/mo, sleep apres 15min idle, 512MB RAM
+# - Postgres free : 90 jours d'essai puis $7/mo
+# - Static site : illimite
+
+databases:
+  - name: uba-staging-db
+    plan: free                  # postgres free 90j
+    databaseName: uba_staging
+    user: uba
+
+services:
+  # ----------------------------------------------------------------------
+  # Backend API — FastAPI
+  # ----------------------------------------------------------------------
+  - type: web
+    name: uba-staging-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/v1/health
+    autoDeploy: true             # auto-deploy on git push main
+    envVars:
+      # DB
+      - key: DATABASE_URL
+        fromDatabase:
+          name: uba-staging-db
+          property: connectionString
+
+      # Generate auto-secrets
+      - key: JWT_ADMIN_SECRET
+        generateValue: true       # 32-char hex auto-genere par Render
+      - key: JWT_CLIENT_SECRET
+        generateValue: true
+      - key: UBA_ADMIN_TOKEN
+        generateValue: true
+
+      # Live gates OFF en staging
+      - key: UBA_LIVE_HOSTINGER
+        value: "0"
+      - key: UBA_LIVE_STRIPE
+        value: "0"
+      - key: UBA_CHAOS_ENABLED
+        value: "0"
+
+      # Stripe test mode (a remplir manuellement dans dashboard)
+      - key: STRIPE_API_KEY
+        sync: false               # secret manuel par dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # Sentry (optionnel)
+      - key: SENTRY_DSN
+        sync: false
+
+      # CORS — autoriser le frontend deployé
+      - key: CORS_ORIGINS
+        value: '["https://uba-staging-app.onrender.com"]'
+
+      # API config
+      - key: API_HOST
+        value: "0.0.0.0"
+      - key: API_PORT
+        value: "10000"            # Render set $PORT, mais default backup
+      - key: ENV
+        value: staging
+
+  # ----------------------------------------------------------------------
+  # Frontend — Vite static site
+  # ----------------------------------------------------------------------
+  - type: web
+    name: uba-staging-app
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci --prefer-offline && npm run build
+    staticPublishPath: dist
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_BASE
+        value: https://uba-staging-api.onrender.com
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+    routes:
+      # SPA fallback : toute route inconnue -> index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,0 +1,50 @@
+# Fly.io config — V9 staging temporaire (alternative)
+#
+# Deploiement :
+# 1. Installer flyctl : https://fly.io/docs/flyctl/install/
+# 2. flyctl auth login                  # browser flow
+# 3. flyctl launch --no-deploy --copy-config --name uba-staging
+# 4. flyctl postgres create --name uba-staging-db --region cdg --vm-size shared-cpu-1x --volume-size 1
+# 5. flyctl postgres attach uba-staging-db --app uba-staging
+# 6. flyctl secrets set JWT_ADMIN_SECRET=$(openssl rand -hex 32) \
+#                       JWT_CLIENT_SECRET=$(openssl rand -hex 32) \
+#                       UBA_LIVE_STRIPE=0 UBA_LIVE_HOSTINGER=0 UBA_CHAOS_ENABLED=0
+# 7. flyctl deploy
+# 8. URL : https://uba-staging.fly.dev
+#
+# Frontend separe : flyctl launch --dockerfile frontend/Dockerfile --name uba-staging-app
+# OU servi via Nginx dans le meme container (cf. nginx.conf).
+
+app = "uba-staging"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[env]
+  ENV = "staging"
+  API_HOST = "0.0.0.0"
+  API_PORT = "8080"
+  UBA_LIVE_STRIPE = "0"
+  UBA_LIVE_HOSTINGER = "0"
+  UBA_CHAOS_ENABLED = "0"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true       # eteindre apres idle (free tier)
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "60s"
+  method = "get"
+  path = "/api/v1/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpus = 1
