@@ -1,198 +1,330 @@
-# V9 Temporary Hosting Playbook — Render.com (free, no card required for static + web)
+# V9 Temporary Hosting Playbook — Fly.io (free, sans carte de crédit)
 
 **Objectif** : valider V9 en conditions réelles **sans achat** avant
 de provisionner le VPS définitif.
 
-**Plateforme retenue** : **Render.com** (Blueprint natif, free tier
-permanent pour static + web service free 750h/mo, Postgres free 90j).
+**Plateforme retenue** : **Fly.io** (Render exigeait carte → switch).
 
-**Alternative** : Fly.io (cf. `fly.toml`) si Render plante.
+**Free allowance Fly.io** :
+- 3 shared-cpu-1x VMs (256MB RAM chacune)
+- 3GB volume storage total
+- 160GB outbound bandwidth/mois
+- Postgres dev single-node 256MB
+- **0 carte de crédit requise** au signup (signup email + GitHub OAuth)
+
+---
+
+## Architecture déploiement
+
+```
+┌────────────────────────┐    ┌──────────────────────────┐
+│ uba-staging-app.fly.dev│    │uba-staging-api.fly.dev   │
+│ Frontend (Nginx serve  │───▶│ Backend (FastAPI uvicorn │
+│ Vite dist + proxy /api)│    │ Docker)                  │
+│ 256MB RAM / shared-cpu │    │ 256MB RAM / shared-cpu   │
+└────────────────────────┘    └────────────┬─────────────┘
+                                            │
+                                            ▼
+                              ┌──────────────────────────┐
+                              │ uba-staging-db (Postgres)│
+                              │ 256MB single-node        │
+                              └──────────────────────────┘
+```
+
+3 apps Fly = pile poil dans la free allowance (3 VMs).
 
 ---
 
 ## Limite honnête de cette session
 
 Je ne peux **pas** :
-- Créer le compte Render à ta place (auth GitHub OAuth interactif)
-- Cliquer "Apply Blueprint" pour toi
-- Lire les URLs publiques générées (que toi seul vois dans ton dashboard)
+- Installer flyctl sur ta machine (binaire Windows téléchargé/exécuté toi)
+- `flyctl auth login` (browser OAuth interactif)
+- Voir les URLs publiques générées (uniquement dans ton dashboard Fly)
 
 Je **peux** :
-- Préparer le Blueprint (`render.yaml` ✅ committé)
-- Écrire les scripts validation (`scripts/staging_validation/` ✅)
-- Une fois que tu colles l'URL ici, je lance smoke tests + k6 + Lighthouse
-  contre l'URL réelle et te livre le rapport.
+- Configs prêtes à l'emploi (`fly_backend.toml`, `fly_frontend.toml`,
+  `frontend/Dockerfile.fly`, `frontend/nginx.fly.conf`) ✅
+- Script automation (`scripts/staging_validation/deploy_fly.sh`) ✅
+- Une fois que tu colles les URLs ici, je relance smoke tests + k6 +
+  Lighthouse contre les URLs réelles et te livre le rapport.
 
 ---
 
-## Étape 1 — Créer le compte Render (~2 minutes, 0 €)
+## Étape 1 — Installer flyctl sur Windows
 
-1. Va sur https://render.com
-2. Clique **"Get Started for Free"**
-3. **"Continue with GitHub"** → autorise Render à voir ton repo
-   `ELITEPROMOTION/usine-bombe-atomique`
-4. **PAS de carte requise** pour Web Service Free + Static Site Free
-   (Postgres Free demande parfois une carte de "verification" mais aucun
-   débit pendant 90j — sinon Fly.io alternative)
+**PowerShell** (recommandé, official) :
 
----
-
-## Étape 2 — Apply le Blueprint (~5 clics, ~5 minutes)
-
-1. Dashboard Render → **"New +"** → **"Blueprint"**
-2. Sélectionner ton repo `ELITEPROMOTION/usine-bombe-atomique`
-3. Render lit `render.yaml` (au root) et propose 3 services :
-   - `uba-staging-api` (Web Service free, Docker)
-   - `uba-staging-app` (Static Site free)
-   - `uba-staging-db` (Postgres free 90j)
-4. Bouton **"Apply"** en bas → Render commence le provisioning
-5. Attente ~5 min :
-   - Backend Docker build : ~3-5 min
-   - DB postgres : ~1 min
-   - Frontend Vite build : ~1-2 min
-
-Pendant le build, **2 secrets sont à remplir manuellement** dans
-le dashboard Render → ton service `uba-staging-api` → Environment :
-- `STRIPE_API_KEY` : ta `sk_test_...` (Stripe test mode dashboard)
-- `STRIPE_WEBHOOK_SECRET` : `whsec_...` (Stripe → Developers → Webhooks
-  → Add endpoint → URL = `https://uba-staging-api.onrender.com/webhooks/stripe`)
-- (optionnel) `SENTRY_DSN`
-
-Après remplissage → **"Save Changes"** déclenche un re-deploy.
-
----
-
-## Étape 3 — Migrations DB (~2 commandes côté toi)
-
-Une fois `uba-staging-db` provisionné :
-
-```bash
-# Render dashboard → uba-staging-db → "Connect" tab → copier "External Database URL"
-export DATABASE_URL="postgres://uba:<password>@dpg-xxxxx.frankfurt-postgres.render.com/uba_staging"
-
-# Local ou via Render Shell (free tier disponible) :
-cd backend
-for f in migrations/versions/0*.sql; do
-  echo "=== $f ==="
-  psql "$DATABASE_URL" -f "$f"
-done
-
-# Bootstrap V9-BOOT (une seule fois)
-docker run --rm --env-file <(echo "DATABASE_URL=$DATABASE_URL") \
-  ghcr.io/eliteproduction/usine-bombe-atomique-api:latest \
-  python -m app.saas_factory.self_bootstrap.bootstrap_runner
-
-# Vérifier
-psql "$DATABASE_URL" -c "SELECT version, committed_at FROM platform_config WHERE id=1;"
+```powershell
+iwr https://fly.io/install.ps1 -useb | iex
 ```
 
-Alternative : utiliser Render's **"Pre-Deploy Command"** dans le
-dashboard pour automatiser les migrations sur chaque deploy.
+Cette commande télécharge `flyctl.exe` dans `~\.fly\bin\` et l'ajoute au
+PATH user. **Ferme et rouvre ton terminal** pour activer le PATH.
+
+Vérifier l'installation :
+```powershell
+flyctl version
+```
+
+Doit afficher `flyctl v0.X.Y` avec un OS/arch info.
+
+**Alternative scoop** :
+```powershell
+scoop install flyctl
+```
+
+**Alternative manuelle** :
+1. Aller sur https://github.com/superfly/flyctl/releases/latest
+2. Télécharger `flyctl_X.Y.Z_Windows_x86_64.zip`
+3. Extraire `flyctl.exe` dans un dossier au PATH
 
 ---
 
-## Étape 4 — Récupérer les URLs
-
-Render attribue automatiquement :
-- **API** : `https://uba-staging-api.onrender.com`
-- **APP** : `https://uba-staging-app.onrender.com`
-
-(le sous-domaine peut varier si les noms sont déjà pris)
-
-→ **Colle ces 2 URLs dans la conversation.** Je lance la validation.
-
----
-
-## Étape 5 — Validation (je relance scripts contre tes URLs)
-
-Quand tu me donnes les URLs, je lance :
+## Étape 2 — Auth Fly.io (~2 minutes, 0 carte)
 
 ```bash
-# 1. Smoke tests (~10 secondes)
+flyctl auth signup        # premier compte (browser flow + email)
+# OU si tu as deja un compte :
+flyctl auth login         # browser flow uniquement
+```
+
+Le browser ouvre `fly.io/app/sign-up` :
+- Email + password OU "Continue with GitHub"
+- Aucune carte demandée pour les apps free allowance
+- Validation email auto, retour terminal sur "Successfully logged in"
+
+Vérifier :
+```bash
+flyctl auth whoami
+```
+
+Doit afficher ton email.
+
+---
+
+## Étape 3 — Deploy automatisé (1 commande)
+
+Depuis la racine du repo :
+
+```bash
+bash scripts/staging_validation/deploy_fly.sh
+```
+
+Le script execute en séquence :
+
+1. **Postgres dev create** : `flyctl postgres create --name uba-staging-db
+   --region cdg --vm-size shared-cpu-1x --volume-size 1`
+   - Demandera un mot de passe admin Postgres (note-le !)
+   - ~2 minutes
+2. **Backend app create** : `flyctl apps create uba-staging-api`
+3. **Postgres attach** : `flyctl postgres attach uba-staging-db --app
+   uba-staging-api` → injecte `DATABASE_URL` automatiquement
+4. **Secrets generation** : `JWT_ADMIN_SECRET` + `JWT_CLIENT_SECRET`
+   générés via `openssl rand -hex 32`, set via `flyctl secrets set
+   --stage` (pas de redeploy immédiat)
+5. **Backend deploy** : `flyctl deploy --config fly_backend.toml
+   --remote-only --strategy rolling` → ~5-7 min (Docker build remote)
+6. **Frontend app create + deploy** : idem pour `uba-staging-app` →
+   ~3 min
+
+**Durée totale** : ~10-15 minutes (Fly remote build).
+
+**URLs auto-générées** :
+- Backend : `https://uba-staging-api.fly.dev`
+- Frontend : `https://uba-staging-app.fly.dev`
+
+Le script imprime ces URLs à la fin + smoke test basique.
+
+---
+
+## Étape 4 — Secrets manuels (Stripe test mode, optionnel)
+
+Si tu veux tester le checkout Stripe en staging :
+
+```bash
+flyctl secrets set --app uba-staging-api \
+  STRIPE_API_KEY=sk_test_xxx \
+  STRIPE_WEBHOOK_SECRET=whsec_xxx
+```
+
+Le redeploy auto se déclenche après `secrets set` (sauf `--stage`).
+
+Ou exporter avant le deploy_fly.sh :
+```bash
+export STRIPE_API_KEY=sk_test_xxx
+export STRIPE_WEBHOOK_SECRET=whsec_xxx
+bash scripts/staging_validation/deploy_fly.sh
+```
+
+Le script détecte ces env vars et les set automatiquement.
+
+---
+
+## Étape 5 — Vérification smoke tests
+
+Une fois les URLs disponibles :
+
+```bash
 bash scripts/staging_validation/smoke_tests.sh \
-  https://uba-staging-api.onrender.com \
-  https://uba-staging-app.onrender.com
+  https://uba-staging-api.fly.dev \
+  https://uba-staging-app.fly.dev
+```
 
-# 2. k6 load test lite (~2 minutes)
-# k6 doit être installé local ou via cloud k6 (free trial)
-API_BASE=https://uba-staging-api.onrender.com \
-  k6 run scripts/staging_validation/k6_load_lite.js
+12 checks couverts :
+- API /health → 200
+- API /health/v9 → status pass/warn
+- API /docs → 200
+- API /metrics → uba_* metrics
+- API /client/project unauthed → 401/503
+- API /admin/projects unauthed → 401/503
+- CORS preflight → 200/204
+- Frontend / → 200
+- Frontend SPA fallback /client → 200
+- HTTPS forced
+- X-Frame-Options + X-Content-Type-Options
+- SSL cert valid
 
-# 3. Lighthouse CI (~2 minutes)
+---
+
+## Étape 6 — Lighthouse + k6 + testssl
+
+### Lighthouse CI (frontend)
+
+```bash
 npx -y @lhci/cli@latest autorun \
   --config=scripts/staging_validation/lighthouserc.json \
-  --collect.url=https://uba-staging-app.onrender.com
-
-# 4. testssl.sh (~3-5 minutes, optionnel)
-bash scripts/staging_validation/testssl_audit.sh \
-  https://uba-staging-api.onrender.com
+  --collect.url=https://uba-staging-app.fly.dev
 ```
 
-⚠ **k6 et Lighthouse CI ne sont pas installés dans ma session.** Je peux
-les installer via npx pour Lighthouse, et essayer d'installer k6 binary
-si possible. testssl.sh nécessite wget + bash mature (peut être limité
-sur Windows Git Bash).
+Verdict si Performance ≥ 85 / Accessibility ≥ 95 / BP ≥ 90.
 
-Si certains outils n'installent pas, je donne les commandes pour que tu
-les lances toi-même et colles les outputs.
+### k6 load test
 
----
+Installer k6 sur Windows :
+```powershell
+choco install k6
+# OU
+winget install k6 --source winget
+```
 
-## Étape 6 — Verdict
+Puis :
+```bash
+API_BASE=https://uba-staging-api.fly.dev \
+  k6 run scripts/staging_validation/k6_load_lite.js
+```
 
-Si tous les checks passent :
-- ✅ smoke tests 12/12 PASS
-- ✅ k6 p95 < 1500ms, error rate < 5%
-- ✅ Lighthouse Performance ≥ 85, A11y ≥ 95, BP ≥ 90
-- ✅ testssl ≥ B+
+2min ramp 10 users, threshold p95 < 1500ms + error_rate < 5%.
 
-→ **GO** pour achat VPS définitif + production via
-`V9_STAGING_DEPLOYMENT_PLAYBOOK.md` (avec confirmation explicite).
-
-Sinon, on itère sur les fails.
-
----
-
-## Limites Render free tier (à connaître)
-
-- **Web service free sleep** après 15 min inactivité → **cold start
-  ~30s** sur premier appel. Ne pas s'inquiéter du premier hit lent.
-- **Postgres free** : 90 jours, puis $7/mo (Neon ou Supabase free
-  alternatives si tu veux pas payer).
-- **CPU/RAM** : 512MB RAM sur web free → Vite build peut être tendu
-  mais doit passer (notre bundle 579KB).
-- **Bandwidth** : 100GB/mo free → suffisant pour staging.
-
----
-
-## Si Render ne marche pas (fallback Fly.io)
+### testssl.sh
 
 ```bash
-# Installer flyctl
-curl -L https://fly.io/install.sh | sh
-
-# Login
-flyctl auth login
-
-# Deploy backend (utilise fly.toml au root)
-flyctl launch --copy-config --no-deploy --name uba-staging
-flyctl postgres create --name uba-staging-db --region cdg --vm-size shared-cpu-1x --volume-size 1
-flyctl postgres attach uba-staging-db --app uba-staging
-flyctl secrets set \
-  JWT_ADMIN_SECRET=$(openssl rand -hex 32) \
-  JWT_CLIENT_SECRET=$(openssl rand -hex 32) \
-  UBA_LIVE_STRIPE=0 UBA_LIVE_HOSTINGER=0 UBA_CHAOS_ENABLED=0
-flyctl deploy
+# Linux/macOS/WSL
+bash scripts/staging_validation/testssl_audit.sh \
+  https://uba-staging-api.fly.dev
 ```
 
-URL : `https://uba-staging.fly.dev`
+Sur Windows pur, utiliser SSL Labs en alternative (online) :
+https://www.ssllabs.com/ssltest/analyze.html?d=uba-staging-api.fly.dev
+
+---
+
+## Étape 7 — Verdict & GO/NO-GO
+
+Si tous les checks passent :
+- ✅ smoke 12/12
+- ✅ Lighthouse Performance ≥ 85, A11y ≥ 95
+- ✅ k6 p95 < 1500ms, error rate < 5%
+- ✅ testssl ≥ B+ ou SSL Labs ≥ B
+
+→ **GO** pour achat VPS définitif + déploiement production via
+`V9_STAGING_DEPLOYMENT_PLAYBOOK.md` (avec ta confirmation explicite).
+
+Sinon, j'analyse les fails et on itère.
+
+---
+
+## Commandes utiles Fly.io
+
+```bash
+# Logs en temps réel
+flyctl logs --app uba-staging-api
+flyctl logs --app uba-staging-app
+
+# SSH dans un container
+flyctl ssh console --app uba-staging-api
+
+# Status + machines
+flyctl status --app uba-staging-api
+
+# Restart
+flyctl machine restart --app uba-staging-api
+
+# Scale (modifier RAM/CPU)
+flyctl scale memory 512 --app uba-staging-api
+
+# Run migrations manuellement (si release_command a échoué)
+flyctl ssh console --app uba-staging-api \
+  -C 'sh -c "for f in migrations/versions/0*.sql; do psql \"$DATABASE_URL\" -f \"$f\"; done"'
+
+# Bootstrap V9
+flyctl ssh console --app uba-staging-api \
+  -C 'python -m app.saas_factory.self_bootstrap.bootstrap_runner'
+
+# Issue token admin (pour tests)
+flyctl ssh console --app uba-staging-api \
+  -C "python -c 'from app.security.jwt_admin import create_admin_token, AdminRole; print(create_admin_token(admin_id=\"ahmed\", role=AdminRole.ADMIN))'"
+
+# Suppression complète (nettoyage)
+flyctl apps destroy uba-staging-api
+flyctl apps destroy uba-staging-app
+flyctl postgres destroy uba-staging-db
+```
+
+---
+
+## Limites Fly.io free tier (à connaître)
+
+- **256MB RAM par VM** : tendu pour Docker build local du frontend
+  (utilise `--remote-only` qui build sur les serveurs Fly).
+- **auto_stop_machines = "stop"** : VM s'éteint après idle, **cold
+  start ~3-5s** sur premier hit. Acceptable pour staging.
+- **Postgres dev single-node** : pas de HA, pas de backup automatique.
+  Pour staging only, OK. Snapshot manuel possible :
+  `flyctl postgres backup snapshot --app uba-staging-db`.
+- **Bandwidth 160GB/mo** : largement suffisant.
+- **Volume 3GB total** : si Postgres + assets dépasse, upgrade ($1.50/mo
+  par GB additionnel).
+
+---
+
+## Si Fly.io plante aussi (fallback Neon + Railway)
+
+**Neon** (Postgres serverless free 0.5GB sans carte) +
+**Railway.app** (free trial $5 sans carte au signup parfois) :
+
+1. Créer Postgres sur https://console.neon.tech (signup GitHub, 0 carte)
+2. Copier la connection string `DATABASE_URL`
+3. Sur Railway : "New Project" → "Deploy from GitHub" →
+   `ELITEPROMOTION/usine-bombe-atomique`
+4. Backend : Service → root `backend/` → variables `DATABASE_URL` +
+   `JWT_*_SECRET`
+5. Frontend : Service séparé → root `frontend/` → build `npm run build`
+   → publish `dist/`
+
+→ Plus de friction (3 services à wirer manuellement) mais 0 carte.
 
 ---
 
 ## Voir aussi
 
-- `render.yaml` — Blueprint Render au root
-- `fly.toml` — config Fly.io alternative
-- `scripts/staging_validation/` — smoke + k6 + lighthouse + testssl
-- `V9_STAGING_DEPLOYMENT_PLAYBOOK.md` — playbook VPS définitif (Phase
-  ultérieure, après validation staging temporaire)
+- `fly_backend.toml` — config backend Fly
+- `fly_frontend.toml` — config frontend Fly
+- `frontend/Dockerfile.fly` — multi-stage Node→Nginx pour Fly
+- `frontend/nginx.fly.conf` — Nginx avec proxy_pass dynamique
+- `scripts/staging_validation/deploy_fly.sh` — automation deploy
+- `scripts/staging_validation/smoke_tests.sh` — 12 checks
+- `scripts/staging_validation/k6_load_lite.js` — load test
+- `scripts/staging_validation/lighthouserc.json` — Lighthouse CI config
+- `V9_STAGING_DEPLOYMENT_PLAYBOOK.md` — VPS définitif (Phase ultérieure
+  après validation Fly)

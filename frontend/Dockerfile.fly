@@ -1,0 +1,32 @@
+# Frontend Dockerfile pour Fly.io — multi-stage Node build -> Nginx serve
+#
+# Build args :
+#   VITE_API_BASE : URL publique du backend (ex https://uba-staging-api.fly.dev)
+#                   bake dans le bundle Vite via import.meta.env.VITE_API_BASE
+
+FROM node:22-slim AS build
+WORKDIR /app
+ARG VITE_API_BASE=
+ENV VITE_API_BASE=$VITE_API_BASE
+COPY package.json package-lock.json* ./
+RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+COPY . .
+RUN npm run build
+
+FROM nginx:1.27-alpine
+# envsubst dispo dans nginx:alpine, permet substitution NGINX_BACKEND_URL au start
+RUN apk add --no-cache gettext
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.fly.conf /etc/nginx/templates/default.conf.template
+
+# Variables que nginx-entrypoint substituera (template engine auto)
+ENV NGINX_BACKEND_URL=https://uba-staging-api.fly.dev
+
+EXPOSE 80
+
+# nginx:alpine official image fait dejaaa envsubst sur /etc/nginx/templates/*.template
+# vers /etc/nginx/conf.d/. Pas besoin de custom entrypoint.
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --quiet --spider http://localhost:80/ || exit 1

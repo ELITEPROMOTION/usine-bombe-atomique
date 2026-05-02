@@ -1,0 +1,45 @@
+# Fly.io frontend config — V9 staging temporaire (Nginx serving Vite dist)
+#
+# Deploy : flyctl deploy --config fly_frontend.toml --dockerfile frontend/Dockerfile.fly
+#
+# Architecture :
+# - Build Vite -> dist/ statique
+# - Servi par Nginx (port 80 internal -> 443 public)
+# - Nginx proxy /api/ vers https://uba-staging-api.fly.dev
+# - SPA fallback : toute route inconnue -> /index.html
+
+app = "uba-staging-app"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "frontend/Dockerfile.fly"
+  [build.args]
+    # baked au build time (Vite import.meta.env.VITE_API_BASE)
+    VITE_API_BASE = "https://uba-staging-api.fly.dev"
+
+[env]
+  # NGINX_BACKEND_URL utilise par envsubst dans nginx.fly.conf
+  NGINX_BACKEND_URL = "https://uba-staging-api.fly.dev"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "30s"
+  method = "get"
+  path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpus = 1
+
+[deploy]
+  strategy = "rolling"
