@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = Field(default="")
     REDIS_DB: int = 0
+    REDIS_SSL: bool = False
 
     JWT_SECRET: str = Field(default="changeme-32-bytes-hex")
     JWT_ALGORITHM: str = "HS256"
