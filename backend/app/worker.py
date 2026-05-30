@@ -415,6 +415,7 @@ async def _maybe_reenqueue_for_regen(
             password=settings.REDIS_PASSWORD or None,
             database=settings.REDIS_DB,
             ssl=__import__("ssl").create_default_context() if settings.REDIS_SSL else None,
+            ssl=__import__("ssl").create_default_context() if settings.REDIS_SSL else None,
         ))
         try:
             await redis.enqueue_job(
@@ -571,6 +572,7 @@ class WorkerSettings:
         port=settings.REDIS_PORT,
         password=settings.REDIS_PASSWORD or None,
         database=settings.REDIS_DB,
+            ssl=__import__("ssl").create_default_context() if settings.REDIS_SSL else None,
             ssl=__import__("ssl").create_default_context() if settings.REDIS_SSL else None,
     )
     max_jobs = 10

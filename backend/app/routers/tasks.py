@@ -29,6 +29,7 @@ async def _enqueue_task(task_id: UUID) -> None:
         password=settings.REDIS_PASSWORD or None,
         database=settings.REDIS_DB,
             ssl=__import__("ssl").create_default_context() if settings.REDIS_SSL else None,
+            ssl=__import__("ssl").create_default_context() if settings.REDIS_SSL else None,
     ))
     try:
         await redis.enqueue_job("run_task", str(task_id), _queue_name="uba:run_task")
