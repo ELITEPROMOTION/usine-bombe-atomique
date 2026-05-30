@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuth } from "@/stores/authStore";
 
 export const apiClient = axios.create({
-  baseURL: "/api/v1",
+  baseURL: ((import.meta as any).env?.VITE_API_BASE_URL as string) || "/api/v1",
   timeout: 30_000,
 });
 
