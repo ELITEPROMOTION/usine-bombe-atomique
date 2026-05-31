@@ -1,0 +1,60 @@
+# Fly.io backend config — V9 staging temporaire (free tier sans carte)
+#
+# Deploy : flyctl deploy --config fly_backend.toml --dockerfile backend/Dockerfile
+#
+# Free allowance Fly.io (sans carte) :
+# - 3 shared-cpu-1x VMs (256MB RAM)
+# - 3GB volume total
+# - 160GB outbound bandwidth/mois
+# - Postgres dev single-node 256MB
+
+app = "uba-staging-api"
+primary_region = "cdg"           # Paris (Charles de Gaulle)
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[env]
+  ENV = "staging"
+  API_PREFIX = "/api/v1"
+  PORT = "8080"                    # uvicorn lit ${PORT:-8000} depuis Dockerfile CMD
+  UBA_LIVE_STRIPE = "0"
+  UBA_LIVE_HOSTINGER = "0"
+  UBA_CHAOS_ENABLED = "0"
+  CORS_ORIGINS = '["https://uba-staging-app.fly.dev"]'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"      # eteint apres idle (free tier safe)
+  auto_start_machines = true
+  min_machines_running = 0         # zero quand idle
+  processes = ["app"]
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "60s"
+  method = "get"
+  path = "/api/v1/health"
+
+# Healthcheck TCP supplementaire (port ouvert)
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "30s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpus = 1
+
+[deploy]
+  # Releases command (a la place des migrations manuelles).
+  # Lance les migrations + bootstrap V9 a chaque deploy.
+  release_command = "sh -c 'for f in migrations/versions/0*.sql; do psql \"$DATABASE_URL\" -f \"$f\"; done && python -m app.saas_factory.self_bootstrap.bootstrap_runner || true'"
+  strategy = "rolling"
