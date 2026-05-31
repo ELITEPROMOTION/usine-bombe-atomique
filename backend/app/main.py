@@ -148,3 +148,4 @@ for _r in (
     app.include_router(_r, prefix=f"{settings.API_PREFIX}", tags=["admin_v9"])
 
 app.include_router(websocket.router, tags=["ws"])
+# force rebuild 1780231525
